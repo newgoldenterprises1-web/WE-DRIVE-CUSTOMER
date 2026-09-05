@@ -1,0 +1,25 @@
+WE DRIVE CUSTOMER - FINAL CLEAN FRONTEND UPDATE
+
+1. Home screen now shows ONLY ONE Recent Trip: the customer's latest completed booking.
+2. Multiple old recent-trip cards are no longer rendered.
+3. If there is no completed booking, a clean 'No recent trip' state is shown instead of fake trip data.
+4. Tapping the single Recent Trip opens Trip Details using that booking's pickup, destination, chauffeur, service and fare data.
+5. Service cards now show their correct icons.
+6. Customer Trip Active screen does not expose Start Trip or Complete Trip actions.
+7. Legacy customer Trip Active complete-trip helper was removed.
+8. Existing UI/theme and booking flow are preserved.
+
+IMPORTANT:
+Replace the complete lib folder with this ZIP's lib folder.
+Do not mix old/new files.
+Then run:
+  flutter clean
+  flutter pub get
+  flutter run
+
+WE DRIVE final branding/build notes (2026-08-31):
+- Tagline locked: WE DRIVE. WHEN YOU DON'T.
+- Quick Services only shows duration selector for Hourly Driver.
+- Pickup location auto-detect uses geolocator + geocoding, with manual fallback.
+- Customer vehicle details: Transmission + Fuel Type only.
+- Android compileSdk set to 35 for current location dependencies.

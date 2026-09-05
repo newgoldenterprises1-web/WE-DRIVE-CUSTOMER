@@ -1,0 +1,15 @@
+WE DRIVE CUSTOMER - LOCATION SETUP
+
+The app now requests device location and reverse-geocodes the pickup locality for every booking flow, including Premium Booking.
+
+In your existing android/app/src/main/AndroidManifest.xml, add these permissions directly under the <manifest> element (before <application>):
+
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+Then run:
+flutter pub get
+flutter analyze
+flutter run
+
+If the user denies location permission, the pickup field remains manually editable.

@@ -1,0 +1,22 @@
+WE DRIVE - BACKEND PHASE 1
+
+Changes:
+1. Removed the 5-second fake chauffeur assignment fallback.
+2. Customer now waits for a real Firestore booking status update.
+3. Customer opens Chauffeur Assigned only when status is assigned/accepted AND driverId exists.
+4. Chauffeur name, phone and vehicle are read from the booking instead of hard-coded demo values.
+5. Customer cancellation is restricted by Firestore rules.
+6. Driver/admin booking permissions are prepared for the future Driver App and Admin Dashboard.
+7. Customer cannot change driver/fare/payment/status fields arbitrarily.
+
+IMPORTANT:
+- Deploy firestore.rules to the SAME Firebase project before testing real assignment.
+- The future Admin Dashboard should set at minimum:
+    status: assigned
+    driverId: <driver uid>
+    driverName: <driver name>
+    driverPhone: <driver phone>
+    vehicle: <vehicle>
+    updatedAt: server timestamp
+- The future Driver App should update only operational status fields according to the rules.
+- This phase does NOT auto-assign a chauffeur. That is intentional.

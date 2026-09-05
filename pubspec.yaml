@@ -1,0 +1,72 @@
+name: we_drive_v2
+description: "A new Flutter project."
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Local Storage
+  shared_preferences: ^2.5.5
+
+  # Premium Fonts
+  google_fonts: ^6.3.0
+
+  # Smooth Animations
+  flutter_animate: ^4.5.2
+
+  # SVG Support
+  flutter_svg: ^2.0.10+1
+
+  # Premium Icons
+  iconsax: ^0.0.8
+
+  # Country Code Picker
+  country_code_picker: ^3.0.0
+
+  # Date Formatting
+  intl: ^0.19.0
+
+  # Location & Maps
+  google_maps_flutter: ^2.10.0
+  geolocator: ^14.0.3
+  geocoding: ^5.0.0
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
+  http: ^1.6.0
+
+  # OTP Input
+  pinput: ^5.0.1
+
+  # External Actions
+  url_launcher: ^6.3.2
+
+  # Firebase Core & Backend
+  firebase_core: ^4.13.0
+  firebase_auth: ^6.5.7
+  cloud_firestore: ^6.8.0
+  google_sign_in: ^6.2.1
+
+  # Tax Invoice Generation & Printing
+  pdf: ^3.10.8
+  printing: ^5.11.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/
+    - assets/images/
