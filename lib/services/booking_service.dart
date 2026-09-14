@@ -1,11 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import 'auth_service.dart';
 
 class BookingService {
   BookingService._();
 
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
+  static final FirebaseFunctions _functions =
+      FirebaseFunctions.instanceFor(region: 'asia-south1');
 
   static CollectionReference<Map<String, dynamic>> get _bookings =>
       _firestore.collection('bookings');
@@ -37,69 +42,56 @@ class BookingService {
       );
     }
 
-    final userSnapshot =
-        await _firestore.collection('users').doc(user.uid).get();
-    final userData = userSnapshot.data() ?? <String, dynamic>{};
-    final bookingRef = _bookings.doc();
+    // Ensures the customer has the shared Firebase customer role before the
+    // booking request is created.
+    await AuthService.ensureCustomerAccount();
 
+    final callable = _functions.httpsCallable('createCustomerBooking');
     final data = <String, dynamic>{
-      'bookingId': bookingRef.id,
-      'customerId': user.uid,
-      'customerName': userData['name'] ?? user.displayName ?? '',
-      'customerPhone': userData['phone'] ?? user.phoneNumber ?? '',
-      'customerEmail': userData['email'] ?? user.email ?? '',
       'serviceType': serviceType,
+      'pickupLocation': pickupLocation,
+      'dropLocation': dropLocation,
+      'pickupLatitude': pickupLatitude,
+      'pickupLongitude': pickupLongitude,
+      'dropLatitude': dropLatitude,
+      'dropLongitude': dropLongitude,
+      'bookingDate': bookingDate?.toIso8601String(),
+      'bookingTime': bookingTime,
+      'selectedHours': selectedHours,
       'vehicleType': vehicleType,
       'transmission': transmission,
       'fuelType': fuelType,
-      'pickupLocation': pickupLocation,
-      'dropLocation': dropLocation,
-      if (pickupLatitude != null) 'pickupLatitude': pickupLatitude,
-      if (pickupLongitude != null) 'pickupLongitude': pickupLongitude,
-      if (dropLatitude != null) 'dropLatitude': dropLatitude,
-      if (dropLongitude != null) 'dropLongitude': dropLongitude,
-      if (bookingDate != null) 'bookingDate': Timestamp.fromDate(bookingDate),
-      if (bookingTime != null) 'bookingTime': bookingTime,
-      if (selectedHours != null) 'selectedHours': selectedHours,
       'fare': fare,
-      'currency': 'INR',
+      // Payment is intentionally deferred in the current WE DRIVE build.
       'paymentMethod': paymentMethod,
       'paymentStatus': paymentStatus,
-      'status': 'REQUESTED',
-      'bookingStatus': 'REQUESTED',
-      'partnerId': null,
-      'driverId': null,
-      'driverName': null,
-      'driverPhone': null,
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
+      ...?additionalData,
     };
 
-    if (additionalData != null && additionalData.isNotEmpty) {
-      data.addAll(additionalData);
+    final result = await callable.call(data);
+    final resultData = Map<String, dynamic>.from(result.data as Map);
+    final bookingId = (resultData['bookingId'] ?? '').toString();
+
+    if (bookingId.isEmpty) {
+      throw FirebaseException(
+        plugin: 'cloud_functions',
+        code: 'invalid-response',
+        message: 'Booking was created without a booking ID.',
+      );
     }
 
-    // Keep customer-created bookings compatible with the Partner backend.
-    data['status'] = 'REQUESTED';
-    data['bookingStatus'] = 'REQUESTED';
-    data['partnerId'] = null;
-    data['driverId'] = null;
-
-    await bookingRef.set(data);
-    return bookingRef.id;
+    return bookingId;
   }
 
   static Future<DocumentSnapshot<Map<String, dynamic>>> getBooking(
     String bookingId,
-  ) async {
-    return _bookings.doc(bookingId).get();
-  }
+  ) async =>
+      _bookings.doc(bookingId).get();
 
   static Stream<DocumentSnapshot<Map<String, dynamic>>> watchBooking(
     String bookingId,
-  ) {
-    return _bookings.doc(bookingId).snapshots();
-  }
+  ) =>
+      _bookings.doc(bookingId).snapshots();
 
   static Stream<QuerySnapshot<Map<String, dynamic>>> watchMyBookings() {
     final user = _auth.currentUser;
@@ -145,7 +137,9 @@ class BookingService {
     final currentStatus = (data['status'] ?? data['bookingStatus'] ?? '')
         .toString()
         .toUpperCase();
-    if (currentStatus == 'COMPLETED' || currentStatus == 'CANCELLED') return;
+    if ({'COMPLETED', 'CANCELLED', 'TRIP_STARTED'}.contains(currentStatus)) {
+      return;
+    }
 
     await bookingRef.update({
       'status': 'CANCELLED',
@@ -161,13 +155,13 @@ class BookingService {
     required String bookingId,
     required String paymentStatus,
   }) async {
+    // Payment is intentionally deferred; kept for future gateway integration.
     await _bookings.doc(bookingId).update({
       'paymentStatus': paymentStatus,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
-  /// Trip status is controlled by the WE DRIVE Partner backend.
   static Future<void> updateBookingStatus({
     required String bookingId,
     required String bookingStatus,
