@@ -32,10 +32,9 @@ class RidesHistoryScreen extends StatelessWidget {
       body: user == null
           ? const Center(child: Text("Please log in to view trip history."))
           : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              // Index error hatane ke liye orderBy query se hata diya hai
               stream: FirebaseFirestore.instance
                   .collection('bookings')
-                  .where('userId', isEqualTo: user.uid)
+                  .where('customerId', isEqualTo: user.uid)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -46,16 +45,28 @@ class RidesHistoryScreen extends StatelessWidget {
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(20),
-                      child: Text(
-                        "Error loading trips: ${snapshot.error}",
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.route_rounded, color: primary, size: 42),
+                          const SizedBox(height: 12),
+                          const Text(
+                            "Unable to load your trips right now.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: primary, fontSize: 14, fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            "Please restart the app once and try again.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                          ),
+                        ],
                       ),
                     ),
                   );
                 }
 
-                // List ko latest trip first ke hisab se sort kiya hai
                 final docs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
                   snapshot.data?.docs ?? [],
                 );
@@ -92,7 +103,7 @@ class RidesHistoryScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          "Your piloted rides and tax invoices will appear here.",
+                          "Your chauffeur trips and tax invoices will appear here.",
                           style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                         ),
                       ],
@@ -121,7 +132,7 @@ class RidesHistoryScreen extends StatelessWidget {
     final String vehicle = data['vehicleType'] ?? 'Private Car';
     final String pickup = data['pickupLocation'] ?? 'Pickup location';
     final String drop = data['dropLocation'] ?? 'Drop location';
-    final String chauffeur = data['chauffeurName'] ?? 'Mohammed Arif';
+    final String chauffeur = data['chauffeurName'] ?? 'Chauffeur';
 
     DateTime? date;
     if (data['createdAt'] is Timestamp) {
