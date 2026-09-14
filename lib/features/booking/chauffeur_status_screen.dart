@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../../services/booking_service.dart';
 
 class ChauffeurStatusScreen extends StatefulWidget {
   const ChauffeurStatusScreen({
@@ -23,222 +26,173 @@ class ChauffeurStatusScreen extends StatefulWidget {
 }
 
 class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
-  static const Color primary = Color(0xFF173B6D);
-  static const Color gold = Color(0xFFD4AF37);
-  static const Color bg = Color(0xFFF8FAFC);
-  static const Color border = Color(0xFFE2E8F0);
+  static const Color primary = Color(0xFF174C52);
+  static const Color accent = Color(0xFFB99A47);
+  static const Color bg = Color(0xFFF6F8F9);
+  static const Color border = Color(0xFFE1E8EA);
 
-  Future<void> _makeCall(String phone) async {
+  Future<void> _call(String phone) async {
     final uri = Uri.parse('tel:$phone');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
-  Future<void> _cancelBooking() async {
+  Future<void> _cancel() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text("Cancel Chauffeur Request?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        content: const Text("Are you sure you want to cancel your booked chauffeur?"),
+        title: const Text('Cancel Chauffeur Request?', style: TextStyle(fontWeight: FontWeight.w800)),
+        content: const Text('This will cancel your current chauffeur request.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("No")),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Yes, Cancel"),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('Cancel Request'),
           ),
         ],
       ),
     );
+    if (confirm != true) return;
 
-    if (confirm == true) {
-      await FirebaseFirestore.instance.collection('bookings').doc(widget.bookingId).update({
-        'status': 'cancelled',
-      });
+    try {
+      await BookingService.cancelBooking(bookingId: widget.bookingId);
       if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unable to cancel: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance.collection('bookings').doc(widget.bookingId).snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data == null) {
-          return const Scaffold(
-            backgroundColor: bg,
-            body: Center(child: CircularProgressIndicator(color: gold)),
-          );
+      stream: BookingService.watchBooking(widget.bookingId),
+      builder: (context, bookingSnapshot) {
+        if (bookingSnapshot.connectionState == ConnectionState.waiting && !bookingSnapshot.hasData) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator(color: primary)));
         }
+        final booking = bookingSnapshot.data?.data() ?? {};
+        final status = (booking['status'] ?? 'REQUESTED').toString().toUpperCase();
+        final partnerId = (booking['partnerId'] ?? '').toString();
 
-        final data = snapshot.data!.data() ?? {};
-        final String status = (data['status'] ?? 'searching').toString().toLowerCase();
+        return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: partnerId.isEmpty
+              ? null
+              : FirebaseFirestore.instance.collection('partners').doc(partnerId).snapshots(),
+          builder: (context, partnerSnapshot) {
+            final partner = partnerSnapshot.data?.data() ?? <String, dynamic>{};
+            final driverName = (booking['driverName'] ?? partner['name'] ?? partner['fullName'] ?? 'Assigned Chauffeur').toString();
+            final phone = (booking['driverPhone'] ?? partner['phoneNumber'] ?? '').toString();
+            final rating = _number(booking['driverRating'] ?? partner['rating'], fallback: 5.0);
+            final experience = (booking['driverExperience'] ?? partner['experience'] ?? partner['experienceYears'] ?? '').toString();
+            final verified = booking['driverVerified'] == true || partner['verified'] == true || partner['verificationStatus'] == 'VERIFIED';
+            final vehicle = _vehicleData(booking, partner);
+            final lat = _number(partner['latitude'], fallback: double.nan);
+            final lng = _number(partner['longitude'], fallback: double.nan);
+            final hasLocation = lat.isFinite && lng.isFinite;
 
-        final bool isAssigned = status == 'assigned' || status == 'en route' || status == 'ongoing' || status == 'completed';
-        final String driverName = data['chauffeurName'] ?? 'Assigned Chauffeur';
-        final String driverPhone = data['chauffeurPhone'] ?? '';
-        final double driverRating = (data['chauffeurRating'] is num) ? (data['chauffeurRating'] as num).toDouble() : 4.90;
-        final String otpCode = data['otp'] ?? '----';
-        final String etaText = data['eta'] ?? 'Nearby';
-
-        return Scaffold(
-          backgroundColor: bg,
-          appBar: AppBar(
-            backgroundColor: primary,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            centerTitle: true,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: Text(
-              _appBarTitle(status),
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-            ),
-          ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (!isAssigned) _searchingBanner() else _statusBanner(status, etaText),
-                const SizedBox(height: 16),
-                if (!isAssigned)
-                  _standbyPlaceholder()
-                else
-                  _driverDetailsCard(driverName, driverPhone, driverRating, otpCode, status),
-                const SizedBox(height: 16),
-                _routeCard(),
-                const SizedBox(height: 16),
-                _summaryCard(),
-                const SizedBox(height: 24),
-                if (status != 'completed')
-                  OutlinedButton(
-                    onPressed: _cancelBooking,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red.shade600,
-                      side: BorderSide(color: Colors.red.shade200),
-                      minimumSize: const Size.fromHeight(50),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            return Scaffold(
+              backgroundColor: bg,
+              appBar: AppBar(
+                backgroundColor: Colors.white,
+                foregroundColor: primary,
+                elevation: 0,
+                title: Text(_title(status), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+              ),
+              body: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                children: [
+                  _statusHeader(status),
+                  const SizedBox(height: 14),
+                  _mapCard(hasLocation, lat, lng, partner),
+                  const SizedBox(height: 14),
+                  if (partnerId.isNotEmpty) _driverCard(driverName, phone, rating, experience, verified, vehicle, status),
+                  if (partnerId.isNotEmpty) const SizedBox(height: 14),
+                  _timeline(status),
+                  const SizedBox(height: 14),
+                  _routeCard(),
+                  const SizedBox(height: 14),
+                  _tripMeta(booking),
+                  const SizedBox(height: 18),
+                  if (!{'COMPLETED', 'CANCELLED', 'TRIP_STARTED'}.contains(status))
+                    OutlinedButton.icon(
+                      onPressed: _cancel,
+                      icon: const Icon(Icons.close_rounded),
+                      label: Text(status == 'REQUESTED' || status == 'SEARCHING' ? 'Cancel Request' : 'Cancel Chauffeur'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red.shade700,
+                        side: BorderSide(color: Colors.red.shade200),
+                        minimumSize: const Size.fromHeight(50),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
                     ),
-                    child: Text(
-                      isAssigned ? "Cancel Booking" : "Cancel Request",
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
   }
 
-  String _appBarTitle(String status) {
+  String _title(String status) {
     switch (status) {
-      case 'searching':
-        return "Finding Chauffeur";
-      case 'en route':
-      case 'assigned':
-        return "Chauffeur En Route";
-      case 'ongoing':
-        return "Trip In Progress";
-      case 'completed':
-        return "Trip Finished";
+      case 'REQUESTED':
+      case 'SEARCHING':
+        return 'Finding Your Chauffeur';
+      case 'ACCEPTED':
+      case 'ARRIVING':
+        return 'Chauffeur Assigned';
+      case 'ARRIVED':
+        return 'Chauffeur Has Arrived';
+      case 'TRIP_STARTED':
+        return 'Trip In Progress';
+      case 'COMPLETED':
+        return 'Trip Completed';
+      case 'CANCELLED':
+        return 'Request Cancelled';
       default:
-        return "Chauffeur Status";
+        return 'Chauffeur Status';
     }
   }
 
-  Widget _searchingBanner() {
+  Widget _statusHeader(String status) {
+    final searching = status == 'REQUESTED' || status == 'SEARCHING';
+    final completed = status == 'COMPLETED';
+    final cancelled = status == 'CANCELLED';
+    final icon = cancelled
+        ? Icons.cancel_rounded
+        : completed
+            ? Icons.check_circle_rounded
+            : searching
+                ? Icons.radar_rounded
+                : status == 'TRIP_STARTED'
+                    ? Icons.route_rounded
+                    : Icons.person_pin_circle_rounded;
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: primary,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: primary.withValues(alpha: 0.25), blurRadius: 16, offset: const Offset(0, 6)),
-        ],
+        gradient: LinearGradient(colors: [primary, primary.withValues(alpha: 0.84)]),
+        borderRadius: BorderRadius.circular(22),
       ),
       child: Row(
         children: [
           Container(
             width: 48,
             height: 48,
-            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), shape: BoxShape.circle),
-            child: const Center(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(color: gold, strokeWidth: 2.5),
-              ),
-            ),
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.14), shape: BoxShape.circle),
+            child: Icon(icon, color: Colors.white, size: 27),
           ),
-          const SizedBox(width: 14),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Assigning Executive Pilot",
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  "Connecting with closest professional driver...",
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statusBanner(String status, String eta) {
-    Color bannerColor = const Color(0xFF0D5C3A);
-    String title = "Chauffeur Assigned!";
-    String sub = "Arriving in $eta at your car location";
-
-    if (status == 'ongoing') {
-      bannerColor = primary;
-      title = "Executive Trip In Progress";
-      sub = "Safe and comfortable drive to your destination";
-    } else if (status == 'completed') {
-      bannerColor = Colors.teal.shade800;
-      title = "Trip Completed Successfully";
-      sub = "Thank you for riding with We Drive";
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: bannerColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 6)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-            child: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 28),
-          ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 13),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                Text(_headline(status), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
                 const SizedBox(height: 4),
-                Text(sub, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                Text(_subtitle(status), style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.3)),
               ],
             ),
           ),
@@ -247,131 +201,121 @@ class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
     );
   }
 
-  Widget _standbyPlaceholder() {
+  String _headline(String status) {
+    switch (status) {
+      case 'REQUESTED':
+      case 'SEARCHING':
+        return 'Matching you with a verified chauffeur';
+      case 'ACCEPTED':
+      case 'ARRIVING':
+        return 'Your chauffeur is on the way';
+      case 'ARRIVED':
+        return 'Your chauffeur is at the pickup point';
+      case 'TRIP_STARTED':
+        return 'Your chauffeur service is active';
+      case 'COMPLETED':
+        return 'Service completed successfully';
+      default:
+        return 'Your request has been cancelled';
+    }
+  }
+
+  String _subtitle(String status) {
+    if (status == 'TRIP_STARTED') return 'Live trip tracking is active.';
+    if (status == 'ARRIVING' || status == 'ACCEPTED') return 'You can view the chauffeur location below.';
+    if (status == 'ARRIVED') return 'Verify the chauffeur before starting the service.';
+    return 'WE DRIVE professional chauffeur service.';
+  }
+
+  Widget _mapCard(bool hasLocation, double lat, double lng, Map<String, dynamic> partner) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: border),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: primary.withValues(alpha: 0.08),
-            child: const Icon(Icons.person_rounded, color: primary, size: 26),
-          ),
-          const SizedBox(width: 14),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Pilot Dispatching...", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primary)),
-              SizedBox(height: 3),
-              Text("Matching background-verified chauffeur", style: TextStyle(color: Colors.grey, fontSize: 12)),
-            ],
-          ),
-        ],
-      ),
+      height: 240,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
+      child: hasLocation
+          ? GoogleMap(
+              initialCameraPosition: CameraPosition(target: LatLng(lat, lng), zoom: 15.5),
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              compassEnabled: false,
+              markers: {
+                Marker(
+                  markerId: const MarkerId('chauffeur'),
+                  position: LatLng(lat, lng),
+                  infoWindow: InfoWindow(title: (partner['name'] ?? 'WE DRIVE Chauffeur').toString()),
+                ),
+              },
+            )
+          : Container(
+              padding: const EdgeInsets.all(20),
+              color: const Color(0xFFEFF5F5),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.location_searching_rounded, color: primary, size: 34),
+                    SizedBox(height: 8),
+                    Text('Live chauffeur location will appear here', textAlign: TextAlign.center, style: TextStyle(color: primary, fontWeight: FontWeight.w700)),
+                    SizedBox(height: 4),
+                    Text('Waiting for the partner app location update.', textAlign: TextAlign.center, style: TextStyle(color: Colors.black54, fontSize: 11)),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 
-  Widget _driverDetailsCard(String name, String phone, double rating, String otp, String status) {
+  Widget _driverCard(String name, String phone, double rating, String experience, bool verified, Map<String, String> vehicle, String status) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: border),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4)),
-        ],
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
       child: Column(
         children: [
           Row(
             children: [
-              Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: primary.withValues(alpha: 0.1),
-                    child: const Icon(Icons.person_rounded, color: primary, size: 34),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
-                    child: const Icon(Icons.check, size: 12, color: Colors.white),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 14),
+              CircleAvatar(radius: 28, backgroundColor: primary.withValues(alpha: 0.08), child: const Icon(Icons.person_rounded, color: primary, size: 34)),
+              const SizedBox(width: 13),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primary)),
-                        const SizedBox(width: 6),
-                        const Icon(Icons.verified_rounded, color: gold, size: 16),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.star_rounded, color: gold, size: 16),
-                        const SizedBox(width: 3),
-                        Text("$rating", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: primary)),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(6)),
-                          child: const Text("Uniformed", style: TextStyle(color: primary, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                    ),
+                    Row(children: [
+                      Flexible(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: primary))),
+                      if (verified) ...[const SizedBox(width: 5), const Icon(Icons.verified_rounded, color: accent, size: 17)],
+                    ]),
+                    const SizedBox(height: 5),
+                    Row(children: [
+                      const Icon(Icons.star_rounded, size: 16, color: accent),
+                      const SizedBox(width: 4),
+                      Text(rating.toStringAsFixed(1), style: const TextStyle(fontWeight: FontWeight.w800, color: primary, fontSize: 12)),
+                      if (experience.isNotEmpty) ...[const SizedBox(width: 10), Text('$experience yrs experience', style: const TextStyle(color: Colors.black54, fontSize: 11))],
+                    ]),
                   ],
                 ),
               ),
-              if (phone.isNotEmpty)
-                IconButton(
-                  onPressed: () => _makeCall(phone),
-                  icon: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: primary.withValues(alpha: 0.08), shape: BoxShape.circle),
-                    child: const Icon(Icons.phone_rounded, color: primary, size: 20),
-                  ),
-                ),
+              if (phone.isNotEmpty) IconButton(onPressed: () => _call(phone), icon: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: primary.withValues(alpha: 0.08), shape: BoxShape.circle), child: const Icon(Icons.phone_rounded, color: primary))),
             ],
           ),
-          if (status != 'ongoing' && status != 'completed') ...[
-            const SizedBox(height: 16),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(color: const Color(0xFFF7F9F9), borderRadius: BorderRadius.circular(15)),
+            child: Row(children: [
+              const Icon(Icons.directions_car_filled_rounded, color: primary, size: 21),
+              const SizedBox(width: 10),
+              Expanded(child: Text(vehicle['model']!.isEmpty ? 'Assigned vehicle details' : '${vehicle['model']} • ${vehicle['color']}', style: const TextStyle(fontWeight: FontWeight.w700, color: primary, fontSize: 12))),
+              Text(vehicle['number']!.isEmpty ? '' : vehicle['number']!, style: const TextStyle(fontWeight: FontWeight.w900, color: primary, fontSize: 12)),
+            ]),
+          ),
+          if (status != 'TRIP_STARTED' && status != 'COMPLETED' && status != 'CANCELLED') ...[
+            const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF9E6),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: gold.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("START TRIP OTP", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-                      SizedBox(height: 2),
-                      Text("Share with pilot upon car arrival", style: TextStyle(fontSize: 11, color: primary)),
-                    ],
-                  ),
-                  Text(
-                    otp,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: primary, letterSpacing: 3),
-                  ),
-                ],
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(color: const Color(0xFFFFF8E8), borderRadius: BorderRadius.circular(14), border: Border.all(color: accent.withValues(alpha: 0.25))),
+              child: const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('START TRIP OTP', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.black54)), SizedBox(height: 2), Text('Share only when your chauffeur arrives', style: TextStyle(fontSize: 10.5, color: primary, fontWeight: FontWeight.w600))]),
+                Text('----', style: TextStyle(fontSize: 22, letterSpacing: 3, fontWeight: FontWeight.w900, color: primary)),
+              ]),
             ),
           ],
         ],
@@ -379,81 +323,91 @@ class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
     );
   }
 
+  Widget _timeline(String status) {
+    const steps = <Map<String, String>>[
+      {'title': 'Request sent', 'sub': 'WE DRIVE is matching you'},
+      {'title': 'Chauffeur assigned', 'sub': 'A verified professional accepted'},
+      {'title': 'Chauffeur arriving', 'sub': 'Live location is available'},
+      {'title': 'Chauffeur arrived', 'sub': 'Verify the chauffeur before starting'},
+      {'title': 'Service active', 'sub': 'Trip tracking is live'},
+      {'title': 'Completed', 'sub': 'Thank you for choosing WE DRIVE'},
+    ];
+    final currentIndex = _statusIndex(status);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Service Timeline', style: TextStyle(fontWeight: FontWeight.w800, color: primary, fontSize: 14)),
+        const SizedBox(height: 14),
+        for (int i = 0; i < steps.length; i++) _timelineRow(steps[i]['title']!, steps[i]['sub']!, i <= currentIndex, i == steps.length - 1),
+      ]),
+    );
+  }
+
+  Widget _timelineRow(String title, String sub, bool active, bool last) {
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Column(children: [CircleAvatar(radius: 7, backgroundColor: active ? primary : const Color(0xFFD8E2E4), child: active ? const Icon(Icons.check, size: 9, color: Colors.white) : null), if (!last) Container(width: 2, height: 36, color: active ? primary.withValues(alpha: 0.25) : const Color(0xFFE6ECEE))]),
+      const SizedBox(width: 12),
+      Expanded(child: Padding(padding: const EdgeInsets.only(bottom: 12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: active ? primary : Colors.black45, fontSize: 12)), const SizedBox(height: 2), Text(sub, style: TextStyle(color: active ? Colors.black54 : Colors.black38, fontSize: 10.5))]))),
+    ]);
+  }
+
+  int _statusIndex(String status) {
+    switch (status) {
+      case 'ACCEPTED': return 1;
+      case 'ARRIVING': return 2;
+      case 'ARRIVED': return 3;
+      case 'TRIP_STARTED': return 4;
+      case 'COMPLETED': return 5;
+      default: return 0;
+    }
+  }
+
   Widget _routeCard() {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("Drive Route", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primary)),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                children: [
-                  const Icon(Icons.radio_button_checked, color: primary, size: 16),
-                  Container(width: 1.5, height: 28, color: Colors.grey.shade300),
-                  const Icon(Icons.location_on, color: gold, size: 18),
-                ],
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.pickupLocation, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: primary)),
-                    const SizedBox(height: 22),
-                    Text(widget.dropLocation, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: primary)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Column(children: [const Icon(Icons.radio_button_checked_rounded, color: primary, size: 16), Container(height: 36, width: 2, color: const Color(0xFFDDE6E8)), const Icon(Icons.location_on_rounded, color: accent, size: 19)]),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Pickup', style: TextStyle(color: Colors.black45, fontSize: 10.5, fontWeight: FontWeight.w700)), Text(widget.pickupLocation, style: const TextStyle(color: primary, fontSize: 12.5, fontWeight: FontWeight.w700)), const SizedBox(height: 20), const Text('Destination', style: TextStyle(color: Colors.black45, fontSize: 10.5, fontWeight: FontWeight.w700)), Text(widget.dropLocation, style: const TextStyle(color: primary, fontSize: 12.5, fontWeight: FontWeight.w700))])),
+      ]),
     );
   }
 
-  Widget _summaryCard() {
+  Widget _tripMeta(Map<String, dynamic> booking) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: border),
-      ),
-      child: Column(
-        children: [
-          _metaRow("Vehicle Assigned", widget.vehicleType),
-          const Divider(height: 22, color: Color(0xFFF1F5F9)),
-          _metaRow("All-Inclusive Bill", "₹${widget.fare.toStringAsFixed(0)}", isHighlight: true),
-          const Divider(height: 22, color: Color(0xFFF1F5F9)),
-          _metaRow("Booking ID", widget.bookingId),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
+      child: Column(children: [
+        _meta('Booking ID', widget.bookingId),
+        const Divider(height: 20, color: border),
+        _meta('Service', (booking['serviceType'] ?? 'Chauffeur Service').toString()),
+        const Divider(height: 20, color: border),
+        _meta('Fare', '₹${widget.fare.toStringAsFixed(0)}', highlight: true),
+        if ((booking['otp'] ?? '').toString().isNotEmpty) ...[
+          const Divider(height: 20, color: border),
+          _meta('Trip OTP', (booking['otp'] ?? '').toString(), highlight: true),
         ],
-      ),
+      ]),
     );
   }
 
-  Widget _metaRow(String label, String value, {bool isHighlight = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
-        Text(
-          value,
-          style: TextStyle(
-            color: isHighlight ? primary : Colors.black87,
-            fontWeight: isHighlight ? FontWeight.w800 : FontWeight.bold,
-            fontSize: isHighlight ? 16 : 13,
-          ),
-        ),
-      ],
-    );
+  Widget _meta(String label, String value, {bool highlight = false}) => Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: const TextStyle(color: Colors.black45, fontSize: 12)), Flexible(child: Text(value, textAlign: TextAlign.end, style: TextStyle(color: highlight ? primary : Colors.black87, fontSize: 12.5, fontWeight: FontWeight.w800))) ]);
+
+  Map<String, String> _vehicleData(Map<String, dynamic> booking, Map<String, dynamic> partner) {
+    final raw = booking['assignedVehicle'];
+    final vehicle = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+    return {
+      'model': (vehicle['model'] ?? partner['vehicleModel'] ?? partner['vehicleType'] ?? booking['vehicleType'] ?? '').toString(),
+      'color': (vehicle['color'] ?? partner['vehicleColor'] ?? '').toString(),
+      'number': (vehicle['number'] ?? partner['vehicleNumber'] ?? partner['registrationNumber'] ?? '').toString(),
+    };
+  }
+
+  double _number(dynamic value, {double fallback = 0}) {
+    final n = value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '');
+    return n ?? fallback;
   }
 }
