@@ -32,16 +32,15 @@ class ConfirmBookingScreen extends StatefulWidget {
 
 class _ConfirmBookingScreenState extends State<ConfirmBookingScreen> {
   static const Color primary = Color(0xFF173B6D);
-  static const Color gold = Color(0xFFD4AF37);
   static const Color bg = Color(0xFFF5F7FA);
   static const Color border = Color(0xFFE2E8F0);
   static const Color textMain = Color(0xFF173B6D);
   static const Color textSub = Color(0xFF64748B);
 
-  String selectedMethod = 'UPI';
   bool isSubmitting = false;
 
   Future<void> _handleConfirm() async {
+    if (isSubmitting) return;
     setState(() => isSubmitting = true);
 
     try {
@@ -52,26 +51,25 @@ class _ConfirmBookingScreenState extends State<ConfirmBookingScreen> {
         vehicleType: widget.vehicleType,
         fare: widget.fare,
         selectedHours: widget.selectedHours,
-        paymentMethod: selectedMethod,
-        paymentStatus: selectedMethod == 'Cash' ? 'pending' : 'paid',
+        // Payment is intentionally deferred; no amount is marked as paid.
+        paymentMethod: 'Cash',
+        paymentStatus: 'pending',
         additionalData: {
-          'status': 'pending',
-          'bookingStatus': 'pending',
           'bookingDate': widget.bookingDate,
           'bookingTime': widget.bookingTime,
-          if (widget.specialInstruction != null && widget.specialInstruction!.isNotEmpty)
+          if (widget.specialInstruction != null &&
+              widget.specialInstruction!.isNotEmpty)
             'specialInstruction': widget.specialInstruction,
         },
       );
 
       if (!mounted) return;
-
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (_) => PaymentSuccessScreen(
             amount: widget.fare.toStringAsFixed(0),
-            paymentMethod: selectedMethod,
+            paymentMethod: 'Cash',
             bookingId: bookingId,
             bookingDate: widget.bookingDate,
             bookingTime: widget.bookingTime,
@@ -97,7 +95,10 @@ class _ConfirmBookingScreenState extends State<ConfirmBookingScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        title: const Text("Confirm Booking", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text(
+          'Confirm Booking',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(18),
@@ -112,24 +113,75 @@ class _ConfirmBookingScreenState extends State<ConfirmBookingScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Trip Overview", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primary)),
+                const Text(
+                  'Trip Overview',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: primary,
+                  ),
+                ),
                 const SizedBox(height: 14),
-                _row("Service", widget.serviceType),
-                _row("Transmission", widget.vehicleType),
-                _row("Pickup", widget.pickupLocation),
-                _row("Drop", widget.dropLocation),
-                if (widget.bookingDate != null) _row("Date", widget.bookingDate!),
-                if (widget.bookingTime != null) _row("Time", widget.bookingTime!),
+                _row('Service', widget.serviceType),
+                _row('Vehicle', widget.vehicleType),
+                _row('Pickup', widget.pickupLocation),
+                _row('Drop', widget.dropLocation),
+                if (widget.bookingDate != null)
+                  _row('Date', widget.bookingDate!),
+                if (widget.bookingTime != null)
+                  _row('Time', widget.bookingTime!),
                 const Divider(height: 22, color: border),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Payment',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: textSub,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      'Payment later',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: textMain,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Total Payable", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primary)),
-                    Text("₹${widget.fare.toStringAsFixed(0)}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: primary)),
+                    const Text(
+                      'Total Fare',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: primary,
+                      ),
+                    ),
+                    Text(
+                      '₹${widget.fare.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: primary,
+                      ),
+                    ),
                   ],
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Your request will be sent to the WE DRIVE Partner app for driver assignment.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: textSub, fontSize: 12, height: 1.4),
           ),
         ],
       ),
@@ -147,11 +199,26 @@ class _ConfirmBookingScreenState extends State<ConfirmBookingScreen> {
               foregroundColor: Colors.white,
               elevation: 0,
               minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
             child: isSubmitting
-                ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : Text("Confirm & Hire Chauffeur • ₹${widget.fare.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                ? const SizedBox(
+                    height: 22,
+                    width: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(
+                    'Confirm & Hire Chauffeur • ₹${widget.fare.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
           ),
         ),
       ),
@@ -169,7 +236,11 @@ class _ConfirmBookingScreenState extends State<ConfirmBookingScreen> {
             child: Text(
               value,
               textAlign: TextAlign.end,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: textMain),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: textMain,
+              ),
             ),
           ),
         ],
