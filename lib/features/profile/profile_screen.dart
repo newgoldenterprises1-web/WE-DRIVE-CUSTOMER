@@ -7,6 +7,7 @@ import 'ride_history_screen.dart';
 import 'payment_methods_screen.dart';
 import 'safety_security_screen.dart';
 import '../auth/login_screen.dart';
+import '../concierge/concierge_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -27,19 +28,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // ==========================================================
-  // USER DATA STREAM
-  // ==========================================================
-
   Stream<DocumentSnapshot<Map<String, dynamic>>>? _userStream() {
     final User? user = _auth.currentUser;
     if (user == null) return null;
     return _firestore.collection('users').doc(user.uid).snapshots();
   }
-
-  // ==========================================================
-  // HELPERS FOR USER ATTRIBUTES
-  // ==========================================================
 
   String _getName(Map<String, dynamic> data, User user) {
     final name = data['name'];
@@ -74,10 +67,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (role is String && role.trim().isNotEmpty) return role.trim();
     return 'Premium Member';
   }
-
-  // ==========================================================
-  // ACTIONS: CALL, EMAIL, RATING, LOGOUT
-  // ==========================================================
 
   Future<void> _callSupport(BuildContext context) async {
     final uri = Uri.parse('tel:$supportPhone');
@@ -193,7 +182,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _rateUs(BuildContext context) {
     double rating = 5;
-
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -201,18 +189,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           builder: (context, setModalState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              title: const Text(
-                'Rate WE DRIVE',
-                style: TextStyle(color: primary, fontWeight: FontWeight.bold),
-              ),
+              title: const Text('Rate WE DRIVE', style: TextStyle(color: primary, fontWeight: FontWeight.bold)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'How was your chauffeur experience?',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
-                  ),
+                  const Text('How was your chauffeur experience?', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
                   const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -220,26 +201,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       final selected = index < rating;
                       return IconButton(
                         onPressed: () => setModalState(() => rating = index + 1.0),
-                        icon: Icon(
-                          selected ? Icons.star_rounded : Icons.star_border_rounded,
-                          color: gold,
-                          size: 34,
-                        ),
+                        icon: Icon(selected ? Icons.star_rounded : Icons.star_border_rounded, color: gold, size: 34),
                       );
                     }),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    '${rating.toInt()} / 5',
-                    style: const TextStyle(color: primary, fontSize: 17, fontWeight: FontWeight.bold),
-                  ),
+                  Text('${rating.toInt()} / 5', style: const TextStyle(color: primary, fontSize: 17, fontWeight: FontWeight.bold)),
                 ],
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel', style: TextStyle(color: primary)),
-                ),
+                TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel', style: TextStyle(color: primary))),
                 FilledButton(
                   style: FilledButton.styleFrom(backgroundColor: primary),
                   onPressed: () {
@@ -273,32 +244,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 45,
-                  height: 5,
-                  decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
-                ),
+                Container(width: 45, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
                 const SizedBox(height: 22),
-                Container(
-                  width: 58,
-                  height: 58,
-                  decoration: BoxDecoration(
-                    color: primary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: const Icon(Icons.support_agent_rounded, color: primary, size: 32),
-                ),
+                Container(width: 58, height: 58, decoration: BoxDecoration(color: primary.withOpacity(0.08), borderRadius: BorderRadius.circular(18)), child: const Icon(Icons.support_agent_rounded, color: primary, size: 32)),
                 const SizedBox(height: 14),
-                const Text(
-                  'Contact WE DRIVE',
-                  style: TextStyle(color: primary, fontSize: 21, fontWeight: FontWeight.bold),
-                ),
+                const Text('Contact WE DRIVE', style: TextStyle(color: primary, fontSize: 21, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
-                const Text(
-                  'Our chauffeur concierge desk is here to help you.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 13),
-                ),
+                const Text('Our chauffeur concierge desk is here to help you.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 13)),
                 const SizedBox(height: 22),
                 _contactOption(
                   icon: Icons.phone_rounded,
@@ -350,15 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         child: Row(
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: color),
-            ),
+            Container(width: 48, height: 48, decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: color)),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -387,11 +331,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await _auth.signOut();
       if (!context.mounted) return;
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
+      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
     } catch (e) {
       if (!context.mounted) return;
       _showMessage(context, 'Unable to logout. Please try again.');
@@ -407,10 +347,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: const Text('Logout', style: TextStyle(color: primary, fontWeight: FontWeight.bold)),
           content: const Text('Are you sure you want to logout from WE DRIVE?'),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel', style: TextStyle(color: primary)),
-            ),
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel', style: TextStyle(color: primary))),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () async {
@@ -425,10 +362,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ==========================================================
-  // BUILD
-  // ==========================================================
-
   @override
   Widget build(BuildContext context) {
     final stream = _userStream();
@@ -440,17 +373,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         surfaceTintColor: background,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          'My Profile',
-          style: TextStyle(color: primary, fontSize: 18, fontWeight: FontWeight.w800),
-        ),
+        title: const Text('My Profile', style: TextStyle(color: primary, fontSize: 18, fontWeight: FontWeight.w800)),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
           child: Column(
             children: [
-              // 1. DYNAMIC PROFILE HEADER CARD
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
@@ -458,53 +387,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(28),
                   border: Border.all(color: border, width: 1.2),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 12, offset: const Offset(0, 4)),
-                  ],
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 12, offset: const Offset(0, 4))],
                 ),
                 child: stream == null
-                    ? _profileHeader(
-                        name: 'WE DRIVE Customer',
-                        phone: 'Not signed in',
-                        email: 'Email not added',
-                        memberType: 'Premium Member',
-                      )
+                    ? _profileHeader(name: 'WE DRIVE Customer', phone: 'Not signed in', email: 'Email not added', memberType: 'Premium Member')
                     : StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
                         stream: stream,
                         builder: (context, snapshot) {
                           final User? user = _auth.currentUser;
                           if (user == null) {
-                            return _profileHeader(
-                              name: 'WE DRIVE Customer',
-                              phone: 'Not signed in',
-                              email: 'Email not added',
-                              memberType: 'Premium Member',
-                            );
+                            return _profileHeader(name: 'WE DRIVE Customer', phone: 'Not signed in', email: 'Email not added', memberType: 'Premium Member');
                           }
-
                           final data = snapshot.data?.data() ?? <String, dynamic>{};
-                          return _profileHeader(
-                            name: _getName(data, user),
-                            phone: _getPhone(data, user),
-                            email: _getEmail(data, user),
-                            memberType: _getMemberType(data),
-                          );
+                          return _profileHeader(name: _getName(data, user), phone: _getPhone(data, user), email: _getEmail(data, user), memberType: _getMemberType(data));
                         },
                       ),
               ),
-
               const SizedBox(height: 20),
 
-              // 2. WORKING PROFILE MENU TILES
+              _profileTile(
+                icon: Icons.auto_awesome_rounded,
+                title: 'Concierge',
+                subtitle: 'Manage premium chauffeur preferences & signature service',
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const ConciergeScreen()));
+                },
+              ),
+
               _profileTile(
                 icon: Icons.access_time_rounded,
                 title: 'Ride History',
                 subtitle: 'View all your completed & upcoming rides',
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const RideHistoryScreen()),
-                  );
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const RideHistoryScreen()));
                 },
               ),
 
@@ -513,10 +428,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 title: 'Payment Methods',
                 subtitle: 'Manage cards, UPI & cash payments',
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()),
-                  );
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()));
                 },
               ),
 
@@ -525,10 +437,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 title: 'Safety & Security',
                 subtitle: 'Manage your safety, privacy & account security',
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SafetySecurityScreen()),
-                  );
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SafetySecurityScreen()));
                 },
               ),
 
@@ -547,8 +456,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
 
               const SizedBox(height: 10),
-
-              // 3. LOGOUT BUTTON
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -563,12 +470,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 22),
-              const Text(
-                'WE DRIVE v1.0.0',
-                style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500),
-              ),
+              const Text('WE DRIVE v1.0.0', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500)),
             ],
           ),
         ),
@@ -576,7 +479,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Header Sub-Component
   Widget _profileHeader({
     required String name,
     required String phone,
@@ -588,48 +490,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Container(
           width: 76,
           height: 76,
-          decoration: BoxDecoration(
-            color: primary.withOpacity(0.08),
-            shape: BoxShape.circle,
-            border: Border.all(color: primary.withOpacity(0.18), width: 2),
-          ),
+          decoration: BoxDecoration(color: primary.withOpacity(0.08), shape: BoxShape.circle, border: Border.all(color: primary.withOpacity(0.18), width: 2)),
           child: const Icon(Icons.person_rounded, color: primary, size: 42),
         ),
         const SizedBox(height: 14),
-        Text(
-          name,
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: primary, fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.3),
-        ),
+        Text(name, textAlign: TextAlign.center, style: const TextStyle(color: primary, fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.3)),
         const SizedBox(height: 4),
         Text(phone, style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500)),
         const SizedBox(height: 2),
         Text(email, style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
         const SizedBox(height: 16),
-
-        // CLICKABLE LUXURY MEMBERSHIP BADGE
         InkWell(
           onTap: () => _showMembershipPerks(context),
           borderRadius: BorderRadius.circular(20),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: primary,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: gold, width: 1.2),
-              boxShadow: [
-                BoxShadow(color: primary.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
-              ],
-            ),
+            decoration: BoxDecoration(color: primary, borderRadius: BorderRadius.circular(20), border: Border.all(color: gold, width: 1.2), boxShadow: [BoxShadow(color: primary.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))]),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.military_tech_rounded, color: gold, size: 18),
                 const SizedBox(width: 6),
-                Text(
-                  memberType,
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.3),
-                ),
+                Text(memberType, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.3)),
                 const SizedBox(width: 4),
                 const Icon(Icons.arrow_forward_ios_rounded, color: gold, size: 10),
               ],
@@ -640,7 +522,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Consistent Menu Tile
   Widget _profileTile({
     required IconData icon,
     required String title,
@@ -654,9 +535,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: border, width: 1.2),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 3)),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 3))],
       ),
       child: Material(
         color: Colors.transparent,
@@ -667,29 +546,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: primary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(icon, color: primary, size: 24),
-                ),
+                Container(width: 50, height: 50, decoration: BoxDecoration(color: primary.withOpacity(0.08), borderRadius: BorderRadius.circular(16)), child: Icon(icon, color: primary, size: 24)),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: const TextStyle(color: primary, fontSize: 15, fontWeight: FontWeight.bold),
-                      ),
+                      Text(title, style: const TextStyle(color: primary, fontSize: 15, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 3),
-                      Text(
-                        subtitle,
-                        style: TextStyle(color: Colors.grey.shade500, fontSize: 11, fontWeight: FontWeight.w500),
-                      ),
+                      Text(subtitle, style: TextStyle(color: Colors.grey.shade500, fontSize: 11, fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
