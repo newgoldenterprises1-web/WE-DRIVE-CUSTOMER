@@ -1,88 +1,71 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isDriver() { return signedIn() && request.auth.token.role == 'driver'; }
+    function isCustomer() { return signedIn() && request.auth.token.role == 'customer'; }
 
-    function signedIn() {
-      return request.auth != null;
+    match /partners/{partnerId} {
+      allow read: if signedIn() && (request.auth.uid == partnerId || isCustomer());
+      allow create, update: if isDriver() && request.auth.uid == partnerId;
+      allow delete: if false;
+
+      match /earnings/{earningId} {
+        allow read: if isDriver() && request.auth.uid == partnerId;
+        allow write: if false;
+      }
+
+      match /withdrawals/{withdrawalId} {
+        allow read: if isDriver() && request.auth.uid == partnerId;
+        allow write: if false;
+      }
     }
 
-    function isAdmin() {
-      return signedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    function isDriver() {
-      return signedIn()
-        && request.auth.token.role == 'driver';
-    }
-
-    function isCustomer() {
-      return signedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'customer';
-    }
-
-    // ----------------------------------------------------------
-    // USERS
-    // ----------------------------------------------------------
     match /users/{userId} {
-      allow read: if (signedIn() && request.auth.uid == userId) || isAdmin();
-
-      allow create: if signedIn()
-        && request.auth.uid == userId
-        && request.resource.data.role == 'customer';
-
-      allow update: if isAdmin()
-        || (signedIn()
-          && request.auth.uid == userId
-          && request.resource.data.role == resource.data.role
-          && request.resource.data.role == 'customer'
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'uid', 'name', 'email', 'photoUrl', 'phone', 'age', 'gender',
-            'profileCompleted', 'updatedAt'
-          ]));
-
-      allow delete: if isAdmin();
+      allow read, create, update: if signedIn() && request.auth.uid == userId;
+      allow delete: if false;
     }
 
-    // ----------------------------------------------------------
-    // BOOKINGS
-    // Shared contract with WE DRIVE Partner backend.
-    // Customer creates REQUESTED, Partner controls trip transitions.
-    // ----------------------------------------------------------
+    match /payoutRequests/{payoutId} {
+      allow read: if isDriver() && resource.data.partnerId == request.auth.uid;
+      allow write: if false;
+    }
+
     match /bookings/{bookingId} {
-      allow create: if isCustomer()
-        && request.resource.data.customerId == request.auth.uid
-        && request.resource.data.status == 'REQUESTED'
-        && request.resource.data.partnerId == null
-        && request.resource.data.driverId == null;
-
-      allow read: if isAdmin()
-        || (isCustomer() && resource.data.customerId == request.auth.uid)
-        || (isDriver() && resource.data.partnerId == request.auth.uid);
-
-      // Customer may only cancel their own booking. Driver/backend
-      // transitions remain callable/backend-controlled in production.
-      allow update: if isAdmin()
-        || (isCustomer()
-          && resource.data.customerId == request.auth.uid
-          && request.resource.data.customerId == resource.data.customerId
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'status', 'bookingStatus', 'cancelledBy', 'cancellationReason',
-            'cancelledAt', 'updatedAt'
-          ])
-          && request.resource.data.status == 'CANCELLED');
-
-      allow delete: if isAdmin();
+      allow get: if signedIn() && (
+        (isDriver() && (
+          resource.data.partnerId == request.auth.uid ||
+          resource.data.status in ['SEARCHING', 'REQUESTED']
+        )) ||
+        (isCustomer() && resource.data.customerId == request.auth.uid)
+      );
+      allow list: if isDriver() || (isCustomer() && resource.data.customerId == request.auth.uid);
+      allow create: if false;
+      allow update: if isCustomer()
+        && resource.data.customerId == request.auth.uid
+        && request.resource.data.customerId == resource.data.customerId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'bookingStatus', 'updatedAt', 'cancelledAt',
+          'cancelledBy', 'cancellationReason'
+        ])
+        && request.resource.data.status == 'CANCELLED';
+      allow delete: if false;
     }
 
-    // ----------------------------------------------------------
-    // DENY EVERYTHING ELSE
-    // ----------------------------------------------------------
-    match /{document=**} {
-      allow read, write: if false;
+    match /supportTickets/{ticketId} {
+      allow create: if isDriver() && request.resource.data.userId == request.auth.uid;
+      allow read: if isDriver() && resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+
+    match /profiles/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isCustomer());
+      allow write: if signedIn() && request.auth.uid == userId;
     }
   }
 }
