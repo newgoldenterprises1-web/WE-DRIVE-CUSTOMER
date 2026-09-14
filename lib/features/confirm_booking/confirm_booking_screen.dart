@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+
 import '../../services/booking_service.dart';
-import '../payment_success/payment_success_screen.dart';
+import '../booking/chauffeur_status_screen.dart';
 
 class ConfirmBookingScreen extends StatefulWidget {
   const ConfirmBookingScreen({
@@ -31,11 +32,11 @@ class ConfirmBookingScreen extends StatefulWidget {
 }
 
 class _ConfirmBookingScreenState extends State<ConfirmBookingScreen> {
-  static const Color primary = Color(0xFF173B6D);
-  static const Color bg = Color(0xFFF5F7FA);
-  static const Color border = Color(0xFFE2E8F0);
-  static const Color textMain = Color(0xFF173B6D);
-  static const Color textSub = Color(0xFF64748B);
+  static const Color primary = Color(0xFF174C52);
+  static const Color bg = Color(0xFFF6F8F9);
+  static const Color border = Color(0xFFE1E8EA);
+  static const Color textMain = Color(0xFF174C52);
+  static const Color textSub = Color(0xFF647477);
 
   bool isSubmitting = false;
 
@@ -51,14 +52,13 @@ class _ConfirmBookingScreenState extends State<ConfirmBookingScreen> {
         vehicleType: widget.vehicleType,
         fare: widget.fare,
         selectedHours: widget.selectedHours,
-        // Payment is intentionally deferred; no amount is marked as paid.
+        bookingTime: widget.bookingTime,
         paymentMethod: 'Cash',
         paymentStatus: 'pending',
         additionalData: {
-          'bookingDate': widget.bookingDate,
-          'bookingTime': widget.bookingTime,
-          if (widget.specialInstruction != null &&
-              widget.specialInstruction!.isNotEmpty)
+          if (widget.bookingDate != null && widget.bookingDate!.isNotEmpty)
+            'bookingDate': widget.bookingDate,
+          if (widget.specialInstruction != null && widget.specialInstruction!.isNotEmpty)
             'specialInstruction': widget.specialInstruction,
         },
       );
@@ -67,19 +67,19 @@ class _ConfirmBookingScreenState extends State<ConfirmBookingScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => PaymentSuccessScreen(
-            amount: widget.fare.toStringAsFixed(0),
-            paymentMethod: 'Cash',
+          builder: (_) => ChauffeurStatusScreen(
+            pickupLocation: widget.pickupLocation,
+            dropLocation: widget.dropLocation,
+            fare: widget.fare,
+            vehicleType: widget.vehicleType,
             bookingId: bookingId,
-            bookingDate: widget.bookingDate,
-            bookingTime: widget.bookingTime,
           ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Booking failed: $e')),
+        SnackBar(content: Text('Unable to send chauffeur request: $e')),
       );
     } finally {
       if (mounted) setState(() => isSubmitting = false);
@@ -91,160 +91,93 @@ class _ConfirmBookingScreenState extends State<ConfirmBookingScreen> {
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: primary,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          'Confirm Booking',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
+        title: const Text('Review Chauffeur Request', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
         children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Trip Overview',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: primary,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                _row('Service', widget.serviceType),
-                _row('Vehicle', widget.vehicleType),
-                _row('Pickup', widget.pickupLocation),
-                _row('Drop', widget.dropLocation),
-                if (widget.bookingDate != null)
-                  _row('Date', widget.bookingDate!),
-                if (widget.bookingTime != null)
-                  _row('Time', widget.bookingTime!),
-                const Divider(height: 22, color: border),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Payment',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: textSub,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      'Payment later',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: textMain,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Total Fare',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: primary,
-                      ),
-                    ),
-                    Text(
-                      '₹${widget.fare.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          _section(
+            title: 'Service',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(widget.serviceType, style: const TextStyle(color: primary, fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text('Professional chauffeur • Payment handled later', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+            ]),
+          ),
+          const SizedBox(height: 12),
+          _section(
+            title: 'Pickup & Destination',
+            child: Column(children: [
+              _locationRow(Icons.radio_button_checked_rounded, 'Pickup', widget.pickupLocation, primary),
+              const SizedBox(height: 12),
+              _locationRow(Icons.location_on_rounded, 'Destination', widget.dropLocation, const Color(0xFFB99A47)),
+            ]),
+          ),
+          const SizedBox(height: 12),
+          _section(
+            title: 'Schedule & Requirements',
+            child: Column(children: [
+              _row('Vehicle', widget.vehicleType),
+              if (widget.selectedHours != null) _row('Duration', '${widget.selectedHours} hours'),
+              if (widget.bookingDate != null && widget.bookingDate!.isNotEmpty) _row('Date', widget.bookingDate!),
+              if (widget.bookingTime != null && widget.bookingTime!.isNotEmpty) _row('Time', widget.bookingTime!),
+              if (widget.specialInstruction != null && widget.specialInstruction!.isNotEmpty) _row('Notes', widget.specialInstruction!),
+            ]),
+          ),
+          const SizedBox(height: 12),
+          _section(
+            title: 'Fare',
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              const Text('All-inclusive estimated fare', style: TextStyle(color: textSub, fontSize: 13)),
+              Text('₹${widget.fare.toStringAsFixed(0)}', style: const TextStyle(color: primary, fontWeight: FontWeight.w900, fontSize: 22)),
+            ]),
           ),
           const SizedBox(height: 14),
-          const Text(
-            'Your request will be sent to the WE DRIVE Partner app for driver assignment.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: textSub, fontSize: 12, height: 1.4),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: const Color(0xFFEAF4F3), borderRadius: BorderRadius.circular(16)),
+            child: const Row(children: [
+              Icon(Icons.verified_user_rounded, color: primary, size: 20),
+              SizedBox(width: 10),
+              Expanded(child: Text('Your request is sent to the shared WE DRIVE Partner system for chauffeur matching.', style: TextStyle(color: primary, fontSize: 11.5, height: 1.35, fontWeight: FontWeight.w600))),
+            ]),
           ),
         ],
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: border)),
-        ),
-        child: SafeArea(
-          child: ElevatedButton(
-            onPressed: isSubmitting ? null : _handleConfirm,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primary,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: isSubmitting
-                ? const SizedBox(
-                    height: 22,
-                    width: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    'Confirm & Hire Chauffeur • ₹${widget.fare.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+        child: ElevatedButton(
+          onPressed: isSubmitting ? null : _handleConfirm,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primary,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: primary.withValues(alpha: 0.4),
+            minimumSize: const Size.fromHeight(54),
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
+          child: isSubmitting
+              ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : Text('REQUEST CHAUFFEUR • ₹${widget.fare.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
         ),
       ),
     );
   }
 
-  Widget _row(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: textSub, fontSize: 13)),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-                color: textMain,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _section({required String title, required Widget child}) => Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: primary, fontSize: 14, fontWeight: FontWeight.w800)), const SizedBox(height: 12), child]),
+      );
+
+  Widget _locationRow(IconData icon, String label, String value, Color color) => Row(children: [Icon(icon, color: color, size: 18), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: textSub, fontSize: 10.5, fontWeight: FontWeight.w700)), const SizedBox(height: 2), Text(value, style: const TextStyle(color: textMain, fontSize: 12.5, fontWeight: FontWeight.w700))]))]);
+
+  Widget _row(String label, String value) => Padding(
+        padding: const EdgeInsets.only(bottom: 9),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: textSub, fontSize: 12)), const SizedBox(width: 18), Expanded(child: Text(value, textAlign: TextAlign.end, style: const TextStyle(color: textMain, fontSize: 12, fontWeight: FontWeight.w700)))]),
+      );
 }
