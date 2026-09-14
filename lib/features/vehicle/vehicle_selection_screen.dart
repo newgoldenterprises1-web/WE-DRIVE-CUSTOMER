@@ -21,18 +21,16 @@ class VehicleSelectionScreen extends StatefulWidget {
   final int? selectedHours;
 
   @override
-  State<VehicleSelectionScreen> createState() =>
-      _VehicleSelectionScreenState();
+  State<VehicleSelectionScreen> createState() => _VehicleSelectionScreenState();
 }
 
 class _VehicleSelectionScreenState extends State<VehicleSelectionScreen> {
   static const Color primary = Color(0xFF174C52);
-  static const Color gold = Color(0xFF19A8A3);
 
   final TextEditingController notesController = TextEditingController();
 
-  String transmission = "Manual"; // Manual or Automatic
-  String carCategory = "Sedan"; // Customer's car type
+  String transmission = "Manual";
+  String carCategory = "Sedan";
   bool needUniformChauffeur = true;
 
   final Map<String, double> carBaseRates = {
@@ -103,7 +101,6 @@ class _VehicleSelectionScreenState extends State<VehicleSelectionScreen> {
       body: ListView(
         padding: const EdgeInsets.all(18),
         children: [
-          // Banner
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -138,17 +135,10 @@ class _VehicleSelectionScreenState extends State<VehicleSelectionScreen> {
               ],
             ),
           ),
-
           const SizedBox(height: 24),
-
-          // Transmission Choice
           const Text(
             "Car Transmission",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: primary,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primary),
           ),
           const SizedBox(height: 10),
           Row(
@@ -172,20 +162,12 @@ class _VehicleSelectionScreenState extends State<VehicleSelectionScreen> {
               ),
             ],
           ),
-
           const SizedBox(height: 24),
-
-          // Car Type Choice
           const Text(
             "Select Your Car Segment",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: primary,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primary),
           ),
           const SizedBox(height: 10),
-
           ...carBaseRates.keys.map((type) {
             final isSelected = carCategory == type;
             return InkWell(
@@ -204,11 +186,7 @@ class _VehicleSelectionScreenState extends State<VehicleSelectionScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.directions_car_rounded,
-                      color: isSelected ? primary : Colors.grey,
-                      size: 26,
-                    ),
+                    Icon(Icons.directions_car_rounded, color: isSelected ? primary : Colors.grey, size: 26),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
@@ -216,41 +194,25 @@ class _VehicleSelectionScreenState extends State<VehicleSelectionScreen> {
                         children: [
                           Text(
                             type,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: primary,
-                            ),
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primary),
                           ),
                           Text(
-                            type == "Luxury"
-                                ? "BMW, Audi, Mercedes, Jaguar etc."
-                                : "Standard family vehicle",
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
+                            type == "Luxury" ? "BMW, Audi, Mercedes, Jaguar etc." : "Standard family vehicle",
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                         ],
                       ),
                     ),
                     Text(
-                      "₹${(carBaseRates[type]!).toStringAsFixed(0)}",
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: primary,
-                      ),
+                      "₹${carBaseRates[type]!.toStringAsFixed(0)}",
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primary),
                     ),
                   ],
                 ),
               ),
             );
           }),
-
           const SizedBox(height: 14),
-
-          // Notes
           TextField(
             controller: notesController,
             decoration: InputDecoration(
@@ -263,7 +225,6 @@ class _VehicleSelectionScreenState extends State<VehicleSelectionScreen> {
               ),
             ),
           ),
-
           const SizedBox(height: 100),
         ],
       ),
@@ -277,9 +238,7 @@ class _VehicleSelectionScreenState extends State<VehicleSelectionScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: primary,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -288,28 +247,16 @@ class _VehicleSelectionScreenState extends State<VehicleSelectionScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "ESTIMATED FARE",
-                        style: TextStyle(fontSize: 11, color: Colors.white70),
-                      ),
+                      const Text("ESTIMATED FARE", style: TextStyle(fontSize: 11, color: Colors.white70)),
                       Text(
                         "₹${fare.toStringAsFixed(0)}",
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
                   const Row(
                     children: [
-                      Text(
-                        "Proceed to Hire",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      Text("Proceed to Hire", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       SizedBox(width: 8),
                       Icon(Icons.arrow_forward_rounded, size: 20),
                     ],
@@ -337,25 +284,16 @@ class _VehicleSelectionScreenState extends State<VehicleSelectionScreen> {
         decoration: BoxDecoration(
           color: selected ? primary : Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected ? primary : Colors.grey.shade300,
-          ),
+          border: Border.all(color: selected ? primary : Colors.grey.shade300),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: selected ? Colors.white : primary,
-            ),
+            Icon(icon, size: 20, color: selected ? Colors.white : primary),
             const SizedBox(width: 8),
             Text(
               title,
-              style: TextStyle(
-                color: selected ? Colors.white : primary,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: selected ? Colors.white : primary, fontWeight: FontWeight.bold),
             ),
           ],
         ),
