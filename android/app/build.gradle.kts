@@ -64,6 +64,13 @@ android {
 
     buildTypes {
         release {
+            if (googleMapsApiKey.isBlank()) {
+                throw GradleException(
+                    "WE DRIVE Customer Google Maps API key is not configured. " +
+                        "Set GOOGLE_MAPS_API_KEY in android/local.properties or the build environment."
+                )
+            }
+
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             } else {
