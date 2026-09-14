@@ -39,6 +39,21 @@ class _ConfirmBookingScreenState extends State<ConfirmBookingScreen> {
   static const Color textSub = Color(0xFF647477);
 
   bool isSubmitting = false;
+  String communicationStyle = 'NORMAL';
+  String luggageMode = 'LIGHT';
+  String pickupMode = 'CUSTOM_PIN';
+  bool privacyMode = false;
+  bool conciergeMode = false;
+  bool whiteGlove = false;
+  final guestNameController = TextEditingController();
+  final guestPhoneController = TextEditingController();
+
+  @override
+  void dispose() {
+    guestNameController.dispose();
+    guestPhoneController.dispose();
+    super.dispose();
+  }
 
   Future<void> _handleConfirm() async {
     if (isSubmitting) return;
@@ -60,6 +75,18 @@ class _ConfirmBookingScreenState extends State<ConfirmBookingScreen> {
             'bookingDate': widget.bookingDate,
           if (widget.specialInstruction != null && widget.specialInstruction!.isNotEmpty)
             'specialInstruction': widget.specialInstruction,
+          'requestPreferences': {
+            'communicationStyle': communicationStyle,
+            'privacyMode': privacyMode,
+            'luggageMode': luggageMode,
+            'pickupMode': pickupMode,
+            'guestName': guestNameController.text.trim().isEmpty ? null : guestNameController.text.trim(),
+            'guestPhone': guestPhoneController.text.trim().isEmpty ? null : guestPhoneController.text.trim(),
+            'guestRelationship': 'Guest',
+            'conciergeMode': conciergeMode,
+            'whiteGlove': whiteGlove,
+          },
+          'signatureMatchRequested': true,
         },
       );
 
@@ -118,6 +145,8 @@ class _ConfirmBookingScreenState extends State<ConfirmBookingScreen> {
             ]),
           ),
           const SizedBox(height: 12),
+          _smartPreferences(),
+          const SizedBox(height: 12),
           _section(
             title: 'Schedule & Requirements',
             child: Column(children: [
@@ -141,9 +170,9 @@ class _ConfirmBookingScreenState extends State<ConfirmBookingScreen> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(color: const Color(0xFFEAF4F3), borderRadius: BorderRadius.circular(16)),
             child: const Row(children: [
-              Icon(Icons.verified_user_rounded, color: primary, size: 20),
+              Icon(Icons.auto_awesome_rounded, color: primary, size: 20),
               SizedBox(width: 10),
-              Expanded(child: Text('Your request is sent to the shared WE DRIVE Partner system for chauffeur matching.', style: TextStyle(color: primary, fontSize: 11.5, height: 1.35, fontWeight: FontWeight.w600))),
+              Expanded(child: Text('WE DRIVE will use these preferences to build your Signature Chauffeur match.', style: TextStyle(color: primary, fontSize: 11.5, height: 1.35, fontWeight: FontWeight.w600))),
             ]),
           ),
         ],
@@ -165,6 +194,88 @@ class _ConfirmBookingScreenState extends State<ConfirmBookingScreen> {
               : Text('REQUEST CHAUFFEUR • ₹${widget.fare.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
         ),
       ),
+    );
+  }
+
+  Widget _smartPreferences() => _section(
+        title: 'Smart Chauffeur Preferences',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _label('Communication'),
+            _chips(['QUIET', 'NORMAL', 'CONVERSATIONAL'], communicationStyle, (value) => setState(() => communicationStyle = value)),
+            const SizedBox(height: 14),
+            _label('Luggage'),
+            _chips(['NONE', 'LIGHT', 'MULTIPLE', 'LARGE'], luggageMode, (value) => setState(() => luggageMode = value)),
+            const SizedBox(height: 14),
+            _label('Pickup point'),
+            _chips(['LOBBY', 'GATE', 'PARKING', 'TERMINAL', 'CUSTOM_PIN'], pickupMode, (value) => setState(() => pickupMode = value)),
+            const SizedBox(height: 10),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: const Text('Private Journey', style: TextStyle(fontWeight: FontWeight.w700, color: primary, fontSize: 13)),
+              subtitle: const Text('Minimal conversation and discreet service instructions', style: TextStyle(fontSize: 11)),
+              value: privacyMode,
+              onChanged: (value) => setState(() => privacyMode = value),
+              activeColor: primary,
+            ),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: const Text('Executive Concierge', style: TextStyle(fontWeight: FontWeight.w700, color: primary, fontSize: 13)),
+              subtitle: const Text('Prepare the booking for premium support and special assistance', style: TextStyle(fontSize: 11)),
+              value: conciergeMode,
+              onChanged: (value) => setState(() => conciergeMode = value),
+              activeColor: primary,
+            ),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: const Text('White-Glove Service', style: TextStyle(fontWeight: FontWeight.w700, color: primary, fontSize: 13)),
+              subtitle: const Text('Early arrival, professional meet-and-greet and extra care', style: TextStyle(fontSize: 11)),
+              value: whiteGlove,
+              onChanged: (value) => setState(() => whiteGlove = value),
+              activeColor: primary,
+            ),
+            const Divider(height: 16),
+            const Text('Guest booking', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: primary)),
+            const SizedBox(height: 7),
+            TextField(
+              controller: guestNameController,
+              decoration: InputDecoration(hintText: 'Guest name (optional)', filled: true, fillColor: const Color(0xFFF8FAFA), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: guestPhoneController,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(hintText: 'Guest phone (optional)', filled: true, fillColor: const Color(0xFFF8FAFA), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)),
+            ),
+          ],
+        ),
+      );
+
+  Widget _label(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 7),
+        child: Text(text, style: const TextStyle(color: textSub, fontSize: 11, fontWeight: FontWeight.w800)),
+      );
+
+  Widget _chips(List<String> values, String selected, ValueChanged<String> onSelected) {
+    return Wrap(
+      spacing: 7,
+      runSpacing: 7,
+      children: values.map((value) {
+        final active = value == selected;
+        return ChoiceChip(
+          label: Text(value.replaceAll('_', ' ')),
+          selected: active,
+          onSelected: (_) => onSelected(value),
+          selectedColor: primary,
+          labelStyle: TextStyle(color: active ? Colors.white : primary, fontSize: 11, fontWeight: FontWeight.w700),
+          backgroundColor: const Color(0xFFF2F6F6),
+          side: BorderSide(color: active ? primary : border),
+        );
+      }).toList(),
     );
   }
 
