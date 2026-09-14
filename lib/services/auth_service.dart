@@ -29,8 +29,6 @@ class AuthService {
       'phone': user.phoneNumber,
     });
 
-    // The callable sets the customer custom claim. Refresh the token so the
-    // shared Firestore rules immediately recognize this user as a customer.
     await user.getIdToken(true);
   }
 
@@ -89,7 +87,7 @@ class AuthService {
   }
 
   static Future<void> sendPasswordResetEmail(String email) async {
-    await _auth.sendPasswordResetEmail(email.trim());
+    await _auth.sendPasswordResetEmail(email: email.trim());
   }
 
   static Future<DocumentSnapshot<Map<String, dynamic>>> getUserProfile() async {
