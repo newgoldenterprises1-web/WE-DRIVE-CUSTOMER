@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -67,6 +68,21 @@ class _SplashScreenState extends State<SplashScreen>
     }
 
     try {
+      await FirebaseFunctions.instanceFor(region: 'asia-south1')
+          .httpsCallable('ensureCustomerAccount')
+          .call({
+        'name': user.displayName,
+        'email': user.email,
+        'phone': user.phoneNumber,
+      })
+          .timeout(const Duration(seconds: 4));
+
+      await user.getIdToken(true);
+    } catch (_) {
+      // Continue into the app even if the role refresh is temporarily unavailable.
+    }
+
+    try {
       final snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -93,8 +109,6 @@ class _SplashScreenState extends State<SplashScreen>
         ),
       );
     } catch (_) {
-      // Do not allow a Firestore/network problem to trap the app on splash.
-      // An authenticated user can still enter the app and retry data loading.
       _goToHome();
     }
   }
