@@ -4,17 +4,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 class BookingService {
   BookingService._();
 
-  static final FirebaseFirestore _firestore =
-      FirebaseFirestore.instance;
+  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  static final FirebaseAuth _auth =
-      FirebaseAuth.instance;
+  static CollectionReference<Map<String, dynamic>> get _bookings =>
+      _firestore.collection('bookings');
 
-  static CollectionReference<Map<String, dynamic>>
-      get _bookings =>
-          _firestore.collection('bookings');
-
-  /// Create a new customer booking.
   static Future<String> createBooking({
     required String serviceType,
     required String pickupLocation,
@@ -35,7 +30,6 @@ class BookingService {
     Map<String, dynamic>? additionalData,
   }) async {
     final user = _auth.currentUser;
-
     if (user == null) {
       throw FirebaseAuthException(
         code: 'not-signed-in',
@@ -43,151 +37,85 @@ class BookingService {
       );
     }
 
-    // ----------------------------------------------------------
-    // CUSTOMER PROFILE
-    // ----------------------------------------------------------
-
-    final userSnapshot = await _firestore
-        .collection('users')
-        .doc(user.uid)
-        .get();
-
-    final userData =
-        userSnapshot.data() ?? <String, dynamic>{};
-
+    final userSnapshot =
+        await _firestore.collection('users').doc(user.uid).get();
+    final userData = userSnapshot.data() ?? <String, dynamic>{};
     final bookingRef = _bookings.doc();
-
-    // ----------------------------------------------------------
-    // BOOKING DATA
-    // ----------------------------------------------------------
 
     final data = <String, dynamic>{
       'bookingId': bookingRef.id,
-
-      // Customer
       'customerId': user.uid,
-      'customerName':
-          userData['name'] ?? user.displayName ?? '',
-      'customerPhone':
-          userData['phone'] ?? user.phoneNumber ?? '',
-      'customerEmail':
-          userData['email'] ?? user.email ?? '',
-
-      // Service
+      'customerName': userData['name'] ?? user.displayName ?? '',
+      'customerPhone': userData['phone'] ?? user.phoneNumber ?? '',
+      'customerEmail': userData['email'] ?? user.email ?? '',
       'serviceType': serviceType,
       'vehicleType': vehicleType,
       'transmission': transmission,
       'fuelType': fuelType,
-
-      // Locations
       'pickupLocation': pickupLocation,
       'dropLocation': dropLocation,
-
-      if (pickupLatitude != null)
-        'pickupLatitude': pickupLatitude,
-
-      if (pickupLongitude != null)
-        'pickupLongitude': pickupLongitude,
-
-      if (dropLatitude != null)
-        'dropLatitude': dropLatitude,
-
-      if (dropLongitude != null)
-        'dropLongitude': dropLongitude,
-
-      // Schedule
-      if (bookingDate != null)
-        'bookingDate': Timestamp.fromDate(bookingDate),
-
-      if (bookingTime != null)
-        'bookingTime': bookingTime,
-
-      if (selectedHours != null)
-        'selectedHours': selectedHours,
-
-      // Pricing
+      if (pickupLatitude != null) 'pickupLatitude': pickupLatitude,
+      if (pickupLongitude != null) 'pickupLongitude': pickupLongitude,
+      if (dropLatitude != null) 'dropLatitude': dropLatitude,
+      if (dropLongitude != null) 'dropLongitude': dropLongitude,
+      if (bookingDate != null) 'bookingDate': Timestamp.fromDate(bookingDate),
+      if (bookingTime != null) 'bookingTime': bookingTime,
+      if (selectedHours != null) 'selectedHours': selectedHours,
       'fare': fare,
       'currency': 'INR',
-
-      // Payment
       'paymentMethod': paymentMethod,
       'paymentStatus': paymentStatus,
-
-      // Booking workflow
-      'bookingStatus': 'pending',
-
-      // Driver
+      'status': 'REQUESTED',
+      'bookingStatus': 'REQUESTED',
+      'partnerId': null,
       'driverId': null,
       'driverName': null,
       'driverPhone': null,
-
-      // Timestamps
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
-    // ----------------------------------------------------------
-    // ADD OPTIONAL DATA
-    // ----------------------------------------------------------
-
-    if (additionalData != null &&
-        additionalData.isNotEmpty) {
+    if (additionalData != null && additionalData.isNotEmpty) {
       data.addAll(additionalData);
     }
 
-    // ----------------------------------------------------------
-    // SAVE BOOKING
-    // ----------------------------------------------------------
+    // Keep customer-created bookings compatible with the Partner backend.
+    data['status'] = 'REQUESTED';
+    data['bookingStatus'] = 'REQUESTED';
+    data['partnerId'] = null;
+    data['driverId'] = null;
 
     await bookingRef.set(data);
-
     return bookingRef.id;
   }
 
-  /// Get one booking by ID.
-  static Future<
-      DocumentSnapshot<Map<String, dynamic>>> getBooking(
+  static Future<DocumentSnapshot<Map<String, dynamic>>> getBooking(
     String bookingId,
   ) async {
     return _bookings.doc(bookingId).get();
   }
 
-  /// Stream one booking for real-time status updates.
-  static Stream<
-      DocumentSnapshot<Map<String, dynamic>>> watchBooking(
+  static Stream<DocumentSnapshot<Map<String, dynamic>>> watchBooking(
     String bookingId,
   ) {
     return _bookings.doc(bookingId).snapshots();
   }
 
-  /// Stream all bookings belonging to the current customer.
-  static Stream<
-      QuerySnapshot<Map<String, dynamic>>> watchMyBookings() {
+  static Stream<QuerySnapshot<Map<String, dynamic>>> watchMyBookings() {
     final user = _auth.currentUser;
-
-    if (user == null) {
-      return const Stream.empty();
-    }
+    if (user == null) return const Stream.empty();
 
     return _bookings
-        .where(
-          'customerId',
-          isEqualTo: user.uid,
-        )
-        .orderBy(
-          'createdAt',
-          descending: true,
-        )
+        .where('customerId', isEqualTo: user.uid)
+        .orderBy('createdAt', descending: true)
         .snapshots();
   }
 
-  /// Cancel a booking.
   static Future<void> cancelBooking({
     required String bookingId,
     String reason = 'Cancelled by customer',
   }) async {
     final user = _auth.currentUser;
-
     if (user == null) {
       throw FirebaseAuthException(
         code: 'not-signed-in',
@@ -196,9 +124,7 @@ class BookingService {
     }
 
     final bookingRef = _bookings.doc(bookingId);
-
     final snapshot = await bookingRef.get();
-
     if (!snapshot.exists) {
       throw FirebaseException(
         plugin: 'cloud_firestore',
@@ -208,7 +134,6 @@ class BookingService {
     }
 
     final data = snapshot.data() ?? {};
-
     if (data['customerId'] != user.uid) {
       throw FirebaseException(
         plugin: 'cloud_firestore',
@@ -217,23 +142,14 @@ class BookingService {
       );
     }
 
-    final currentStatus =
-        (data['bookingStatus'] ?? '').toString();
-
-    if (currentStatus == 'completed') {
-      throw FirebaseException(
-        plugin: 'cloud_firestore',
-        code: 'booking-completed',
-        message: 'Completed bookings cannot be cancelled.',
-      );
-    }
-
-    if (currentStatus == 'cancelled') {
-      return;
-    }
+    final currentStatus = (data['status'] ?? data['bookingStatus'] ?? '')
+        .toString()
+        .toUpperCase();
+    if (currentStatus == 'COMPLETED' || currentStatus == 'CANCELLED') return;
 
     await bookingRef.update({
-      'bookingStatus': 'cancelled',
+      'status': 'CANCELLED',
+      'bookingStatus': 'CANCELLED',
       'cancelledBy': 'customer',
       'cancellationReason': reason,
       'cancelledAt': FieldValue.serverTimestamp(),
@@ -241,7 +157,6 @@ class BookingService {
     });
   }
 
-  /// Update payment status.
   static Future<void> updatePaymentStatus({
     required String bookingId,
     required String paymentStatus,
@@ -252,16 +167,13 @@ class BookingService {
     });
   }
 
-  /// Update booking status.
-  ///
-  /// This will later be used by the partner/driver backend.
+  /// Trip status is controlled by the WE DRIVE Partner backend.
   static Future<void> updateBookingStatus({
     required String bookingId,
     required String bookingStatus,
   }) async {
-    await _bookings.doc(bookingId).update({
-      'bookingStatus': bookingStatus,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    throw StateError(
+      'Booking status is controlled by the WE DRIVE Partner backend.',
+    );
   }
 }
