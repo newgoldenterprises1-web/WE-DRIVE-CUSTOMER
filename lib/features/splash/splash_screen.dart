@@ -23,6 +23,8 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+  bool _navigated = false;
+
   @override
   void initState() {
     super.initState();
@@ -54,17 +56,22 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkAuthentication() async {
-    await Future.delayed(const Duration(milliseconds: 2500));
-
-    if (!mounted) return;
+    await Future.delayed(const Duration(milliseconds: 1800));
+    if (!mounted || _navigated) return;
 
     final User? user = FirebaseAuth.instance.currentUser;
 
-    if (user != null) {
+    if (user == null) {
+      _goToLogin();
+      return;
+    }
+
+    try {
       final snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 4));
 
       final data = snapshot.data() ?? <String, dynamic>{};
       final phone = (data['phone'] ?? user.phoneNumber ?? '').toString().trim();
@@ -74,8 +81,9 @@ class _SplashScreenState extends State<SplashScreen>
           data['age'] != null &&
           gender.isNotEmpty;
 
-      if (!mounted) return;
+      if (!mounted || _navigated) return;
 
+      _navigated = true;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -84,14 +92,28 @@ class _SplashScreenState extends State<SplashScreen>
               : ProfileCompletionScreen(user: user),
         ),
       );
-      return;
+    } catch (_) {
+      // Do not allow a Firestore/network problem to trap the app on splash.
+      // An authenticated user can still enter the app and retry data loading.
+      _goToHome();
     }
+  }
 
+  void _goToLogin() {
+    if (!mounted || _navigated) return;
+    _navigated = true;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (_) => const LoginScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+  }
+
+  void _goToHome() {
+    if (!mounted || _navigated) return;
+    _navigated = true;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const NavigationScreen()),
     );
   }
 
@@ -101,7 +123,6 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: primaryDark,
       body: Stack(
         children: [
-          // Background Gradient Depth
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
@@ -117,15 +138,12 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
           ),
-
           SafeArea(
             child: SizedBox(
               width: double.infinity,
               child: Column(
                 children: [
                   const Spacer(flex: 5),
-
-                  // Brand Center Typography
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: SlideTransition(
@@ -133,7 +151,6 @@ class _SplashScreenState extends State<SplashScreen>
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // 1. Clean Wordmark with Gold Dot
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -159,10 +176,7 @@ class _SplashScreenState extends State<SplashScreen>
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 14),
-
-                          // 2. Punchy Tagline with Gold Dividers
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -194,10 +208,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                   ),
-
                   const Spacer(flex: 5),
-
-                  // Minimal Gold Progress Bar
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: SizedBox(
@@ -212,7 +223,6 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 36),
                 ],
               ),
