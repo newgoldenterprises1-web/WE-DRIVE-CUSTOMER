@@ -42,21 +42,16 @@ class BookingService {
       );
     }
 
+    // Ensure the customer account exists through the trusted backend.
+    // Do not read the customer profile directly here; booking creation is
+    // handled by the callable function and should not depend on a client-side
+    // Firestore profile read.
     await AuthService.ensureCustomerAccount();
 
-    final profileSnap = await _firestore.collection('users').doc(user.uid).get();
-    final savedPreferences = Map<String, dynamic>.from(
-      profileSnap.data()?['chauffeurPreferences'] as Map? ?? {},
-    );
     final requestPreferences = Map<String, dynamic>.from(
       (additionalData?['requestPreferences'] as Map?) ?? {},
     );
-    final mergedPreferences = <String, dynamic>{
-      ...savedPreferences,
-      ...requestPreferences,
-    };
 
-    final callable = _functions.httpsCallable('createCustomerBooking');
     final data = <String, dynamic>{
       'serviceType': serviceType,
       'pickupLocation': pickupLocation,
@@ -75,9 +70,10 @@ class BookingService {
       'paymentMethod': paymentMethod,
       'paymentStatus': paymentStatus,
       ...?additionalData,
-      'requestPreferences': mergedPreferences,
+      'requestPreferences': requestPreferences,
     };
 
+    final callable = _functions.httpsCallable('createCustomerBooking');
     final result = await callable.call(data);
     final resultData = Map<String, dynamic>.from(result.data as Map);
     final bookingId = (resultData['bookingId'] ?? '').toString();
