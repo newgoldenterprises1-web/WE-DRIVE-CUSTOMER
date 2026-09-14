@@ -1,16 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
-import 'auth_service.dart';
 
 class BookingService {
   BookingService._();
 
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
-  static final FirebaseFunctions _functions =
-      FirebaseFunctions.instanceFor(region: 'asia-south1');
 
   static CollectionReference<Map<String, dynamic>> get _bookings =>
       _firestore.collection('bookings');
@@ -42,17 +37,14 @@ class BookingService {
       );
     }
 
-    // Ensure the customer account exists through the trusted backend.
-    // Do not read the customer profile directly here; booking creation is
-    // handled by the callable function and should not depend on a client-side
-    // Firestore profile read.
-    await AuthService.ensureCustomerAccount();
-
     final requestPreferences = Map<String, dynamic>.from(
       (additionalData?['requestPreferences'] as Map?) ?? {},
     );
 
+    final bookingRef = _bookings.doc();
     final data = <String, dynamic>{
+      'bookingId': bookingRef.id,
+      'customerId': user.uid,
       'serviceType': serviceType,
       'pickupLocation': pickupLocation,
       'dropLocation': dropLocation,
@@ -69,24 +61,18 @@ class BookingService {
       'fare': fare,
       'paymentMethod': paymentMethod,
       'paymentStatus': paymentStatus,
+      'status': 'searching',
+      'bookingStatus': 'searching',
+      'driverId': null,
+      'requestPreferences': requestPreferences,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
       ...?additionalData,
       'requestPreferences': requestPreferences,
     };
 
-    final callable = _functions.httpsCallable('createCustomerBooking');
-    final result = await callable.call(data);
-    final resultData = Map<String, dynamic>.from(result.data as Map);
-    final bookingId = (resultData['bookingId'] ?? '').toString();
-
-    if (bookingId.isEmpty) {
-      throw FirebaseException(
-        plugin: 'cloud_functions',
-        code: 'invalid-response',
-        message: 'Booking was created without a booking ID.',
-      );
-    }
-
-    return bookingId;
+    await bookingRef.set(data);
+    return bookingRef.id;
   }
 
   static Future<DocumentSnapshot<Map<String, dynamic>>> getBooking(
@@ -148,8 +134,8 @@ class BookingService {
     }
 
     await bookingRef.update({
-      'status': 'CANCELLED',
-      'bookingStatus': 'CANCELLED',
+      'status': 'cancelled',
+      'bookingStatus': 'cancelled',
       'cancelledBy': 'customer',
       'cancellationReason': reason,
       'cancelledAt': FieldValue.serverTimestamp(),
