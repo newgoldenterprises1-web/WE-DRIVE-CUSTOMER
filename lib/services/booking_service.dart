@@ -42,9 +42,19 @@ class BookingService {
       );
     }
 
-    // Ensures the customer has the shared Firebase customer role before the
-    // booking request is created.
     await AuthService.ensureCustomerAccount();
+
+    final profileSnap = await _firestore.collection('users').doc(user.uid).get();
+    final savedPreferences = Map<String, dynamic>.from(
+      profileSnap.data()?['chauffeurPreferences'] as Map? ?? {},
+    );
+    final requestPreferences = Map<String, dynamic>.from(
+      (additionalData?['requestPreferences'] as Map?) ?? {},
+    );
+    final mergedPreferences = <String, dynamic>{
+      ...savedPreferences,
+      ...requestPreferences,
+    };
 
     final callable = _functions.httpsCallable('createCustomerBooking');
     final data = <String, dynamic>{
@@ -62,10 +72,10 @@ class BookingService {
       'transmission': transmission,
       'fuelType': fuelType,
       'fare': fare,
-      // Payment is intentionally deferred in the current WE DRIVE build.
       'paymentMethod': paymentMethod,
       'paymentStatus': paymentStatus,
       ...?additionalData,
+      'requestPreferences': mergedPreferences,
     };
 
     final result = await callable.call(data);
@@ -155,7 +165,6 @@ class BookingService {
     required String bookingId,
     required String paymentStatus,
   }) async {
-    // Payment is intentionally deferred; kept for future gateway integration.
     await _bookings.doc(bookingId).update({
       'paymentStatus': paymentStatus,
       'updatedAt': FieldValue.serverTimestamp(),
