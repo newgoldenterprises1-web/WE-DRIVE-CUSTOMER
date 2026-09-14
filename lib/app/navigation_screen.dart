@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../features/booking/rides_history_screen.dart';
+import '../features/concierge/concierge_screen.dart';
 import '../features/fleet/fleet_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/profile/profile_screen.dart';
@@ -21,7 +22,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
   final List<Widget> _pages = const [
     HomeScreen(),
     FleetScreen(),
-    RidesHistoryScreen(), // Yahan Trips me naya invoice aur history connect ho gaya
+    ConciergeScreen(),
+    RidesHistoryScreen(),
     ProfileScreen(),
   ];
 
@@ -34,7 +36,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
       ),
       bottomNavigationBar: SafeArea(
         child: Container(
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          margin: const EdgeInsets.fromLTRB(10, 0, 10, 16),
           height: 72,
           decoration: BoxDecoration(
             color: Colors.white,
@@ -49,10 +51,11 @@ class _NavigationScreenState extends State<NavigationScreen> {
           ),
           child: Row(
             children: [
-              _item(Icons.home_rounded, "Home", 0),
-              _item(Icons.directions_car_rounded, "Garage", 1),
-              _item(Icons.route_rounded, "Trips", 2),
-              _item(Icons.person_rounded, "Profile", 3),
+              _item(Icons.home_rounded, 'Home', 0),
+              _item(Icons.directions_car_rounded, 'Garage', 1),
+              _item(Icons.auto_awesome_rounded, 'Concierge', 2),
+              _item(Icons.route_rounded, 'Trips', 3),
+              _item(Icons.person_rounded, 'Profile', 4),
             ],
           ),
         ),
@@ -73,7 +76,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
           decoration: BoxDecoration(
             color: selected ? primary : Colors.transparent,
             borderRadius: BorderRadius.circular(18),
@@ -84,14 +87,16 @@ class _NavigationScreenState extends State<NavigationScreen> {
               Icon(
                 icon,
                 color: selected ? gold : Colors.grey.shade500,
-                size: 24,
+                size: 22,
               ),
               const SizedBox(height: 3),
               Text(
                 title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: selected ? Colors.white : Colors.grey.shade600,
-                  fontSize: 12,
+                  fontSize: 10.5,
                   fontWeight: selected ? FontWeight.bold : FontWeight.w500,
                 ),
               ),
