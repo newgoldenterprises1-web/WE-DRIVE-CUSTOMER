@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -5,6 +8,23 @@ plugins {
     // END: FlutterFire Configuration
     id("org.jetbrains.kotlin.android")
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
+}
+
+val googleMapsApiKey = localProperties.getProperty("GOOGLE_MAPS_API_KEY")
+    ?: System.getenv("GOOGLE_MAPS_API_KEY")
+    ?: ""
+
+val signingProperties = Properties()
+val signingPropertiesFile = rootProject.file("key.properties")
+val hasReleaseSigning = signingPropertiesFile.exists()
+if (hasReleaseSigning) {
+    FileInputStream(signingPropertiesFile).use { signingProperties.load(it) }
 }
 
 android {
@@ -18,6 +38,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = googleMapsApiKey
     }
 
     compileOptions {
@@ -29,9 +51,27 @@ android {
         jvmTarget = "17"
     }
 
+    if (hasReleaseSigning) {
+        signingConfigs {
+            create("release") {
+                keyAlias = signingProperties["keyAlias"] as String
+                keyPassword = signingProperties["keyPassword"] as String
+                storeFile = file(signingProperties["storeFile"] as String)
+                storePassword = signingProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                throw GradleException(
+                    "WE DRIVE Customer release signing is not configured. " +
+                        "Create android/key.properties and provide a release keystore before building a production release."
+                )
+            }
         }
     }
 }
