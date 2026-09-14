@@ -41,6 +41,12 @@ class BookingService {
       (additionalData?['requestPreferences'] as Map?) ?? {},
     );
 
+    // A customer app must never mark a payment as completed by itself.
+    // A trusted payment backend/webhook must perform that transition.
+    final safePaymentStatus = paymentStatus.toLowerCase() == 'paid'
+        ? 'pending'
+        : paymentStatus;
+
     final bookingRef = _bookings.doc();
     final data = <String, dynamic>{
       ...?additionalData,
@@ -61,7 +67,7 @@ class BookingService {
       'fuelType': fuelType,
       'fare': fare,
       'paymentMethod': paymentMethod,
-      'paymentStatus': paymentStatus,
+      'paymentStatus': safePaymentStatus,
       'status': 'searching',
       'bookingStatus': 'searching',
       'driverId': null,
@@ -142,22 +148,24 @@ class BookingService {
     });
   }
 
+  /// Payment state is trusted data and cannot be changed by the customer app.
+  /// Payment providers/webhooks must update it through a trusted backend.
   static Future<void> updatePaymentStatus({
     required String bookingId,
     required String paymentStatus,
   }) async {
-    await _bookings.doc(bookingId).update({
-      'paymentStatus': paymentStatus,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    throw StateError(
+      'Payment status is controlled by the trusted payment backend.',
+    );
   }
 
+  /// Booking operational status is controlled by the trusted backend.
   static Future<void> updateBookingStatus({
     required String bookingId,
     required String bookingStatus,
   }) async {
     throw StateError(
-      'Booking status is controlled by the WE DRIVE Partner backend.',
+      'Booking status is controlled by the trusted WE DRIVE backend.',
     );
   }
 }
