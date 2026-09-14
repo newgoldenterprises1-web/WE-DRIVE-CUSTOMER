@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../booking/pickup_drop_screen.dart';
+import 'chauffeur_preferences_screen.dart';
 
 class ConciergeScreen extends StatelessWidget {
   const ConciergeScreen({super.key});
@@ -46,7 +47,19 @@ class ConciergeScreen extends StatelessWidget {
           _feature(Icons.groups_rounded, 'Guest & Event Chauffeur', 'Book for family, clients, weddings, conferences and multiple guests.'),
           _feature(Icons.location_on_rounded, 'Smart Pickup', 'Lobby, gate, parking, terminal or a custom meeting point.'),
           _feature(Icons.shield_rounded, 'Safety First', 'Trip OTP, trusted contacts, live trip sharing and SOS workflow support.'),
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChauffeurPreferencesScreen())),
+            icon: const Icon(Icons.tune_rounded),
+            label: const Text('MANAGE MY CHAUFFEUR PREFERENCES', style: TextStyle(fontWeight: FontWeight.w800)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: primary,
+              side: BorderSide(color: primary.withValues(alpha: 0.25)),
+              minimumSize: const Size.fromHeight(52),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+          ),
+          const SizedBox(height: 10),
           SizedBox(
             height: 54,
             child: ElevatedButton.icon(
