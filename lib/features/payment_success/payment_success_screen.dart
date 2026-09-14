@@ -25,7 +25,6 @@ class PaymentSuccessScreen extends StatefulWidget {
 
 class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
   static const Color primary = Color(0xFF173B6D);
-  static const Color gold = Color(0xFFD4AF37);
   static const Color bg = Color(0xFFF5F7FA);
   static const Color border = Color(0xFFE2E8F0);
   static const Color textMain = Color(0xFF173B6D);
