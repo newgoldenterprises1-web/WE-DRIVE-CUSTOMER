@@ -19,4 +19,3 @@ include: package:flutter_lints/flutter.yaml
 linter:
   rules:
     prefer_const_constructors: false
-    unused_field: false
