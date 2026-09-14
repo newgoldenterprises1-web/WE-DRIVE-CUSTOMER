@@ -13,6 +13,7 @@ class PaymentScreen extends StatefulWidget {
     required this.vehicleType,
     required this.fare,
     this.selectedHours,
+    this.specialInstruction = '',
   });
 
   final String serviceType;
@@ -21,6 +22,7 @@ class PaymentScreen extends StatefulWidget {
   final String vehicleType;
   final double fare;
   final int? selectedHours;
+  final String specialInstruction;
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -35,7 +37,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String selectedPaymentMethod = "UPI";
   bool isBooking = false;
 
-  // Internal splits (Sirf backend Firestore ke liye, UI par bilkul nahi dikhenge)
   double get driverPayout => widget.fare * 0.85;
   double get weDriveShare => widget.fare * 0.15;
 
@@ -52,7 +53,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     try {
-      // Backend mein save hoga driver payout aur platform share
       await FirebaseFirestore.instance.collection('bookings').doc(newBookingId).set({
         'bookingId': newBookingId,
         'userId': user?.uid ?? 'guest_user',
@@ -66,6 +66,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'driverPayout': double.parse(driverPayout.toStringAsFixed(2)),
         'weDriveShare': double.parse(weDriveShare.toStringAsFixed(2)),
         'selectedHours': widget.selectedHours,
+        'specialInstruction': widget.specialInstruction,
         'paymentMethod': selectedPaymentMethod,
         'paymentStatus': selectedPaymentMethod == 'Cash' ? 'pending' : 'paid',
         'status': 'searching',
@@ -117,7 +118,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
       body: ListView(
         padding: const EdgeInsets.all(18),
         children: [
-          // Trip Summary Card
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
@@ -187,6 +187,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                   ],
                 ),
+                if (widget.specialInstruction.trim().isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.notes_rounded, color: primary, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          widget.specialInstruction.trim(),
+                          style: const TextStyle(fontSize: 12.5, color: Colors.black87),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -206,7 +224,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
           const SizedBox(height: 20),
 
-          // Customer Transparent Bill (No internal fee / commission display)
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
