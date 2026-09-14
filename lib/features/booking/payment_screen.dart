@@ -52,12 +52,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final newBookingId = _generateBookingId();
     final user = FirebaseAuth.instance.currentUser;
 
+    if (user == null) {
+      if (mounted) {
+        setState(() => isBooking = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please log in before booking a chauffeur.')),
+        );
+      }
+      return;
+    }
+
     try {
       await FirebaseFirestore.instance.collection('bookings').doc(newBookingId).set({
         'bookingId': newBookingId,
-        'userId': user?.uid ?? 'guest_user',
-        'userName': user?.displayName ?? 'Valued Customer',
-        'userPhone': user?.phoneNumber ?? '',
+        'customerId': user.uid,
+        'userId': user.uid,
+        'userName': user.displayName ?? 'Valued Customer',
+        'userPhone': user.phoneNumber ?? '',
         'serviceType': widget.serviceType,
         'pickupLocation': widget.pickupLocation,
         'dropLocation': widget.dropLocation,
@@ -208,22 +219,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ],
             ),
           ),
-
           const SizedBox(height: 20),
           const Text(
             "Payment Options",
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primary),
           ),
           const SizedBox(height: 12),
-
           _paymentOptionTile("UPI (GPay / PhonePe / Paytm)", Icons.qr_code_2_rounded, "UPI"),
           const SizedBox(height: 10),
           _paymentOptionTile("Credit / Debit Card", Icons.credit_card_rounded, "Card"),
           const SizedBox(height: 10),
           _paymentOptionTile("Cash to Driver", Icons.payments_outlined, "Cash"),
-
           const SizedBox(height: 20),
-
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
@@ -250,28 +257,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      "Taxes & Platform Charges",
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                    Text(
-                      "Included",
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green),
-                    ),
+                    Text("Taxes & Platform Charges", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text("Included", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green)),
                   ],
                 ),
                 const Divider(height: 22, color: Color(0xFFF1F5F9)),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      "Total Amount Payable",
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primary),
-                    ),
-                    Text(
-                      "₹${widget.fare.toStringAsFixed(0)}",
-                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: primary),
-                    ),
+                    const Text("Total Amount Payable", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primary)),
+                    Text("₹${widget.fare.toStringAsFixed(0)}", style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: primary)),
                   ],
                 ),
               ],
@@ -291,18 +286,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
               elevation: 0,
             ),
             child: isBooking
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
-                  )
+                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "Pay ₹${widget.fare.toStringAsFixed(0)}",
-                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
+                      Text("Pay ₹${widget.fare.toStringAsFixed(0)}", style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white)),
                       const Row(
                         children: [
                           Text("Book Chauffeur", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
@@ -337,18 +325,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
             Expanded(
               child: Text(
                 title,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: primary,
-                  fontSize: 14,
-                ),
+                style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, color: primary, fontSize: 14),
               ),
             ),
-            Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: isSelected ? primary : Colors.grey.shade400,
-              size: 20,
-            ),
+            Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_off, color: isSelected ? primary : Colors.grey.shade400, size: 20),
           ],
         ),
       ),
