@@ -15,26 +15,25 @@ service cloud.firestore {
 
     function isDriver() {
       return signedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'driver';
+        && request.auth.token.role == 'driver';
     }
 
-    function isOwner() {
-      return signedIn() && resource.data.customerId == request.auth.uid;
+    function isCustomer() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'customer';
     }
 
     // ----------------------------------------------------------
     // USERS
     // ----------------------------------------------------------
     match /users/{userId} {
-      allow read: if signedIn() && request.auth.uid == userId || isAdmin();
+      allow read: if (signedIn() && request.auth.uid == userId) || isAdmin();
 
       allow create: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.role == 'customer';
 
-      // Customer may update profile fields, but cannot promote
-      // themselves or change role/driver/admin flags.
       allow update: if isAdmin()
         || (signedIn()
           && request.auth.uid == userId
@@ -50,36 +49,31 @@ service cloud.firestore {
 
     // ----------------------------------------------------------
     // BOOKINGS
+    // Shared contract with WE DRIVE Partner backend.
+    // Customer creates REQUESTED, Partner controls trip transitions.
     // ----------------------------------------------------------
     match /bookings/{bookingId} {
-      // Customer creates only their own booking and it must begin
-      // in the controlled searching state.
-      allow create: if signedIn()
+      allow create: if isCustomer()
         && request.resource.data.customerId == request.auth.uid
-        && request.resource.data.status == 'searching'
+        && request.resource.data.status == 'REQUESTED'
+        && request.resource.data.partnerId == null
         && request.resource.data.driverId == null;
 
-      // Customer can read only their own booking. Admins and the
-      // assigned driver can also read it.
       allow read: if isAdmin()
-        || isOwner()
-        || (isDriver() && resource.data.driverId == request.auth.uid);
+        || (isCustomer() && resource.data.customerId == request.auth.uid)
+        || (isDriver() && resource.data.partnerId == request.auth.uid);
 
-      // Customer can only cancel their own active booking. They
-      // cannot change driver, fare, status, payment or timestamps.
+      // Customer may only cancel their own booking. Driver/backend
+      // transitions remain callable/backend-controlled in production.
       allow update: if isAdmin()
-        || (isOwner()
+        || (isCustomer()
+          && resource.data.customerId == request.auth.uid
           && request.resource.data.customerId == resource.data.customerId
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
-          && request.resource.data.status == 'cancelled')
-        || (isDriver()
-          && resource.data.driverId == request.auth.uid
-          && request.resource.data.customerId == resource.data.customerId
-          && request.resource.data.driverId == resource.data.driverId
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'status', 'updatedAt', 'driverName', 'driverPhone', 'vehicle'
+            'status', 'bookingStatus', 'cancelledBy', 'cancellationReason',
+            'cancelledAt', 'updatedAt'
           ])
-          && request.resource.data.status in ['accepted', 'arriving', 'arrived', 'in_progress', 'completed']);
+          && request.resource.data.status == 'CANCELLED');
 
       allow delete: if isAdmin();
     }
