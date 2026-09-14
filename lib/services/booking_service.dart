@@ -43,6 +43,7 @@ class BookingService {
 
     final bookingRef = _bookings.doc();
     final data = <String, dynamic>{
+      ...?additionalData,
       'bookingId': bookingRef.id,
       'customerId': user.uid,
       'serviceType': serviceType,
@@ -67,8 +68,6 @@ class BookingService {
       'requestPreferences': requestPreferences,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
-      ...?additionalData,
-      'requestPreferences': requestPreferences,
     };
 
     await bookingRef.set(data);
