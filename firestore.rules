@@ -3,7 +3,6 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function isDriver() { return signedIn() && request.auth.token.role == 'driver'; }
-    function isCustomer() { return signedIn() && request.auth.token.role == 'customer'; }
 
     match /partners/{partnerId} {
       allow read: if signedIn() && (request.auth.uid == partnerId || isCustomer());
@@ -35,20 +34,35 @@ service cloud.firestore {
       allow get: if signedIn() && (
         (isDriver() && (
           resource.data.partnerId == request.auth.uid ||
-          resource.data.status in ['SEARCHING', 'REQUESTED']
+          resource.data.status in ['SEARCHING', 'REQUESTED', 'searching', 'requested']
         )) ||
-        (isCustomer() && resource.data.customerId == request.auth.uid)
+        (resource.data.customerId == request.auth.uid)
       );
-      allow list: if isDriver() || (isCustomer() && resource.data.customerId == request.auth.uid);
-      allow create: if false;
-      allow update: if isCustomer()
-        && resource.data.customerId == request.auth.uid
+
+      allow list: if signedIn() && (
+        isDriver() || resource.data.customerId == request.auth.uid
+      );
+
+      allow create: if signedIn()
+        && request.resource.data.customerId == request.auth.uid
+        && request.resource.data.status in ['SEARCHING', 'REQUESTED', 'searching', 'requested']
+        && request.resource.data.bookingStatus in ['SEARCHING', 'REQUESTED', 'searching', 'requested']
+        && request.resource.data.driverId == null
+        && request.resource.data.bookingId == bookingId;
+
+      allow update: if signedIn()
         && request.resource.data.customerId == resource.data.customerId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'status', 'bookingStatus', 'updatedAt', 'cancelledAt',
-          'cancelledBy', 'cancellationReason'
-        ])
-        && request.resource.data.status == 'CANCELLED';
+        && (
+          (request.resource.data.customerId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status', 'bookingStatus', 'updatedAt',
+              'cancelledAt', 'cancelledBy', 'cancellationReason'
+            ])
+            && request.resource.data.status == 'cancelled')
+          ||
+          (isDriver() && resource.data.partnerId == request.auth.uid)
+        );
+
       allow delete: if false;
     }
 
@@ -67,5 +81,7 @@ service cloud.firestore {
       allow read: if signedIn() && (request.auth.uid == userId || isCustomer());
       allow write: if signedIn() && request.auth.uid == userId;
     }
+
+    function isCustomer() { return signedIn() && request.auth.token.role == 'customer'; }
   }
 }
