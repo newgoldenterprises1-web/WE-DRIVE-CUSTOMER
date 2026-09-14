@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../features/booking/rides_history_screen.dart';
-import '../features/concierge/concierge_screen.dart';
 import '../features/fleet/fleet_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/profile/profile_screen.dart';
@@ -22,7 +21,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
   final List<Widget> _pages = const [
     HomeScreen(),
     FleetScreen(),
-    ConciergeScreen(),
     RidesHistoryScreen(),
     ProfileScreen(),
   ];
@@ -53,9 +51,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
             children: [
               _item(Icons.home_rounded, 'Home', 0),
               _item(Icons.directions_car_rounded, 'Garage', 1),
-              _item(Icons.auto_awesome_rounded, 'Concierge', 2),
-              _item(Icons.route_rounded, 'Trips', 3),
-              _item(Icons.person_rounded, 'Profile', 4),
+              _item(Icons.route_rounded, 'Trips', 2),
+              _item(Icons.person_rounded, 'Profile', 3),
             ],
           ),
         ),
