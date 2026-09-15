@@ -117,7 +117,7 @@ class RidesHistoryScreen extends StatelessWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: 14),
                   itemBuilder: (context, index) {
                     final data = docs[index].data();
-                    return _tripCard(context, data);
+                    return _tripCard(context, data, docs[index].id);
                   },
                 );
               },
@@ -125,14 +125,14 @@ class RidesHistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _tripCard(BuildContext context, Map<String, dynamic> data) {
-    final String bookingId = data['bookingId'] ?? 'N/A';
-    final String status = data['status'] ?? 'Completed';
+  Widget _tripCard(BuildContext context, Map<String, dynamic> data, String documentId) {
+    final String bookingId = (data['bookingId'] ?? documentId).toString();
+    final String status = (data['status'] ?? data['bookingStatus'] ?? 'Completed').toString();
     final double fare = (data['fare'] is num) ? (data['fare'] as num).toDouble() : 0.0;
-    final String vehicle = data['vehicleType'] ?? 'Private Car';
-    final String pickup = data['pickupLocation'] ?? 'Pickup location';
-    final String drop = data['dropLocation'] ?? 'Drop location';
-    final String chauffeur = data['chauffeurName'] ?? 'Chauffeur';
+    final String vehicle = (data['vehicleType'] ?? data['vehicle'] ?? 'Private Car').toString();
+    final String pickup = (data['pickupAddress'] ?? data['pickupLocation'] ?? 'Pickup location').toString();
+    final String drop = (data['dropoffAddress'] ?? data['dropLocation'] ?? 'Drop location').toString();
+    final String chauffeur = (data['driverName'] ?? data['chauffeurName'] ?? 'Chauffeur').toString();
 
     DateTime? date;
     if (data['createdAt'] is Timestamp) {
