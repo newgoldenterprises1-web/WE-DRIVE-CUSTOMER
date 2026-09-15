@@ -134,7 +134,13 @@ class BookingService {
     final currentStatus = (data['status'] ?? data['bookingStatus'] ?? '')
         .toString()
         .toUpperCase();
-    if ({'COMPLETED', 'CANCELLED', 'TRIP_STARTED'}.contains(currentStatus)) {
+    if ({
+      'COMPLETED',
+      'CANCELLED',
+      'TRIP_STARTED',
+      'IN_PROGRESS',
+      'STARTED',
+    }.contains(currentStatus)) {
       return;
     }
 
