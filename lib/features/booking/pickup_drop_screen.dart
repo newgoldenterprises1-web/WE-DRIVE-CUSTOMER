@@ -24,7 +24,6 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   static const Color gold = Color(0xFFD4AF37);
   static const Color bg = Color(0xFFF8FAFC);
   static const Color border = Color(0xFFE2E8F0);
-
   final pickupController = TextEditingController();
   final dropController = TextEditingController();
   final MapController mapController = MapController();
@@ -37,7 +36,6 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   bool isSearching = false;
   bool searchPickup = false;
   int? searchStopIndex;
-
   static const ll.LatLng defaultLocation = ll.LatLng(17.3850, 78.4867);
   static const ll.LatLng airportLocation = ll.LatLng(17.2403, 78.4294);
   ll.LatLng pickupPos = defaultLocation;
@@ -53,7 +51,6 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   bool get isAirport => widget.serviceType.toLowerCase().contains('airport');
   bool get isOutstation => widget.serviceType.toLowerCase().contains('outstation');
   bool get isNightTime { final h = DateTime.now().hour; return h >= 22 || h < 6; }
-
   static const Map<int, double> standardDayRates = {1: 299, 2: 349, 4: 549, 6: 749, 8: 949, 12: 1299};
   static const Map<int, double> standardNightRates = {1: 499, 2: 549, 4: 749, 6: 949, 8: 1149, 12: 1499};
 
@@ -66,9 +63,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
 
   List<ll.LatLng> get _routeLocations {
     final points = <ll.LatLng>[pickupPos];
-    for (final p in stopPositions) {
-      if (p != null) points.add(p);
-    }
+    for (final p in stopPositions) { if (p != null) points.add(p); }
     if (dropPos != null) points.add(dropPos!);
     if (tripType == 'Round Trip') points.add(pickupPos);
     return points;
@@ -82,9 +77,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
 
   String get _routeSummary {
     final p = <String>['Pickup: ${pickupController.text.trim()}'];
-    for (var i = 0; i < stopControllers.length; i++) {
-      p.add('Stop ${i + 1}: ${stopControllers[i].text.trim()}');
-    }
+    for (var i = 0; i < stopControllers.length; i++) { p.add('Stop ${i + 1}: ${stopControllers[i].text.trim()}'); }
     p.add('Final Drop: ${dropController.text.trim()}');
     if (tripType == 'Round Trip') p.add('Return: Pickup');
     return p.join(' • ');
@@ -271,17 +264,30 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
             ] else if (isOutstation) ...[
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Outstation Trip Duration', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: primary)), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(8)), child: const Text('₹1,799 / day', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF92400E))))]),
               const SizedBox(height: 10),
-              Row(children: [1, 2, 3, 5].map((d) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 3), child: InkWell(onTap: () => setState(() => outstationDays = d), borderRadius: BorderRadius.circular(12), child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: outstationDays == d ? primary : Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: outstationDays == d ? primary : border)), child: Center(child: Text('$d Day${d > 1 ? 's' : ''}', style: TextStyle(color: outstationDays == d ? Colors.white : primary, fontWeight: FontWeight.bold, fontSize: 12))))))).toList()),
+              Row(children: <Widget>[
+                for (final d in <int>[1, 2, 3, 5])
+                  Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 3), child: InkWell(onTap: () => setState(() => outstationDays = d), borderRadius: BorderRadius.circular(12), child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: outstationDays == d ? primary : Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: outstationDays == d ? primary : border)), child: Center(child: Text('$d Day${d > 1 ? 's' : ''}', style: TextStyle(color: outstationDays == d ? Colors.white : primary, fontWeight: FontWeight.bold, fontSize: 12))))))),
+              ],),
               const SizedBox(height: 14),
             ] else ...[
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Select Duration Package', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: primary)), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: isNightTime ? const Color(0xFF1E1B4B) : const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(8)), child: Text(isNightTime ? 'Night Fare (10 PM - 6 AM)' : 'Standard Day Fare', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isNightTime ? Colors.amber : const Color(0xFF92400E))))]),
               const SizedBox(height: 10),
-              Wrap(spacing: 8, runSpacing: 8, children: [1, 2, 4, 6, 8, 12].map((h) { final selected = selectedHours == h; final rate = ((isNightTime ? standardNightRates[h] : standardDayRates[h]) ?? 0) + (widget.isPremium ? 150 : 0); return InkWell(onTap: () => setState(() => selectedHours = h), borderRadius: BorderRadius.circular(12), child: AnimatedContainer(duration: const Duration(milliseconds: 180), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: selected ? primary : Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: selected ? primary : border)), child: Column(children: [Text('${h}h Package', style: TextStyle(color: selected ? Colors.white : primary, fontWeight: FontWeight.bold, fontSize: 12.5)), const SizedBox(height: 2), Text('₹${rate.toStringAsFixed(0)}', style: TextStyle(color: selected ? gold : Colors.grey.shade600, fontWeight: FontWeight.w700, fontSize: 11.5))]))); }).toList()),
+              Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
+                for (final h in <int>[1, 2, 4, 6, 8, 12])
+                  Builder(builder: (_) {
+                    final selected = selectedHours == h;
+                    final rate = ((isNightTime ? standardNightRates[h] : standardDayRates[h]) ?? 0) + (widget.isPremium ? 150 : 0);
+                    return InkWell(onTap: () => setState(() => selectedHours = h), borderRadius: BorderRadius.circular(12), child: AnimatedContainer(duration: const Duration(milliseconds: 180), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: selected ? primary : Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: selected ? primary : border)), child: Column(children: [Text('${h}h Package', style: TextStyle(color: selected ? Colors.white : primary, fontWeight: FontWeight.bold, fontSize: 12.5)), const SizedBox(height: 2), Text('₹${rate.toStringAsFixed(0)}', style: TextStyle(color: selected ? gold : Colors.grey.shade600, fontWeight: FontWeight.w700, fontSize: 11.5))])));
+                  }),
+              ]),
               const SizedBox(height: 14),
             ],
             const Text('Trip Type', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: primary)),
             const SizedBox(height: 8),
-            Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: border)), child: Row(children: ['One Way', 'Round Trip'].map((type) => Expanded(child: InkWell(onTap: () { setState(() => tripType = type); _getRoadRoute(); }, borderRadius: BorderRadius.circular(11), child: AnimatedContainer(duration: const Duration(milliseconds: 180), padding: const EdgeInsets.symmetric(vertical: 11), decoration: BoxDecoration(color: tripType == type ? primary : Colors.transparent, borderRadius: BorderRadius.circular(11)), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(type == 'One Way' ? Icons.arrow_forward_rounded : Icons.sync_rounded, size: 17, color: tripType == type ? Colors.white : primary), const SizedBox(width: 6), Text(type, style: TextStyle(color: tripType == type ? Colors.white : primary, fontWeight: FontWeight.bold, fontSize: 12.5))])))).toList())),
+            Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: border)), child: Row(children: <Widget>[
+              Expanded(child: InkWell(onTap: () { setState(() => tripType = 'One Way'); _getRoadRoute(); }, borderRadius: BorderRadius.circular(11), child: AnimatedContainer(duration: const Duration(milliseconds: 180), padding: const EdgeInsets.symmetric(vertical: 11), decoration: BoxDecoration(color: tripType == 'One Way' ? primary : Colors.transparent, borderRadius: BorderRadius.circular(11)), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.arrow_forward_rounded, size: 17, color: tripType == 'One Way' ? Colors.white : primary), const SizedBox(width: 6), Text('One Way', style: TextStyle(color: tripType == 'One Way' ? Colors.white : primary, fontWeight: FontWeight.bold, fontSize: 12.5))]))),
+              Expanded(child: InkWell(onTap: () { setState(() => tripType = 'Round Trip'); _getRoadRoute(); }, borderRadius: BorderRadius.circular(11), child: AnimatedContainer(duration: const Duration(milliseconds: 180), padding: const EdgeInsets.symmetric(vertical: 11), decoration: BoxDecoration(color: tripType == 'Round Trip' ? primary : Colors.transparent, borderRadius: BorderRadius.circular(11)), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.sync_rounded, size: 17, color: tripType == 'Round Trip' ? Colors.white : primary), const SizedBox(width: 6), Text('Round Trip', style: TextStyle(color: tripType == 'Round Trip' ? Colors.white : primary, fontWeight: FontWeight.bold, fontSize: 12.5))]))),
+            ])),
             if (tripType == 'Round Trip') ...[const SizedBox(height: 8), Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: gold.withValues(alpha: .10), borderRadius: BorderRadius.circular(12)), child: const Row(children: [Icon(Icons.info_outline, color: primary, size: 17), SizedBox(width: 7), Expanded(child: Text('Route returns to the pickup point after final drop.', style: TextStyle(fontSize: 11.5, color: primary, fontWeight: FontWeight.w600)))]))],
             const SizedBox(height: 14),
             const Text('Car Transmission', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: primary)),
@@ -289,7 +295,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
             Row(children: [Expanded(child: _gearChip('Manual', Icons.tune, transmission == 'Manual', () => setState(() => transmission = 'Manual'))), const SizedBox(width: 10), Expanded(child: _gearChip('Automatic', Icons.bolt, transmission == 'Automatic', () => setState(() => transmission = 'Automatic')))]),
             const SizedBox(height: 14),
             _routeCard(),
-            if (searchList.isNotEmpty) Container(margin: const EdgeInsets.only(top: 8), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: border)), child: Column(children: searchList.map((item) => ListTile(dense: true, leading: const Icon(Icons.place_rounded, color: primary, size: 20), title: Text(item['title'], style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: primary)), subtitle: Text(item['sub'], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)), onTap: () => _applySelection(ll.LatLng(item['lat'], item['lon']), item['title'])).toList())),
+            if (searchList.isNotEmpty) Container(margin: const EdgeInsets.only(top: 8), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: border)), child: Column(children: searchList.map<Widget>((item) => ListTile(dense: true, leading: const Icon(Icons.place_rounded, color: primary, size: 20), title: Text(item['title'], style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: primary)), subtitle: Text(item['sub'], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)), onTap: () => _applySelection(ll.LatLng(item['lat'], item['lon']), item['title'])).toList())),
             const SizedBox(height: 12),
             Row(children: [_pill('Jubilee Hills', () { searchPickup = false; searchStopIndex = null; _applySelection(const ll.LatLng(17.4319, 78.4073), 'Jubilee Hills'); }), const SizedBox(width: 6), _pill('Hitec City', () { searchPickup = false; searchStopIndex = null; _applySelection(const ll.LatLng(17.4474, 78.3762), 'Hitec City'); }), const SizedBox(width: 6), _pill('Gachibowli', () { searchPickup = false; searchStopIndex = null; _applySelection(const ll.LatLng(17.4401, 78.3489), 'Gachibowli'); })]),
             const SizedBox(height: 90),
@@ -300,10 +306,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
         onPressed: () {
           if (pickupController.text.trim().isEmpty || dropController.text.trim().isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Select pickup & drop locations'))); return; }
           for (var i = 0; i < stopControllers.length; i++) {
-            if (stopControllers[i].text.trim().isEmpty || stopPositions[i] == null) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Select Stop ${i + 1} location')));
-              return;
-            }
+            if (stopControllers[i].text.trim().isEmpty || stopPositions[i] == null) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Select Stop ${i + 1} location'))); return; }
           }
           final carLabel = widget.vehicleData != null ? '${widget.vehicleData!['model']} (${widget.vehicleData!['number']})' : 'Car ($transmission)';
           Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen(serviceType: widget.serviceType, pickupLocation: pickupController.text, dropLocation: _routeSummary, vehicleType: carLabel, fare: fare, selectedHours: isAirport ? null : selectedHours)));
@@ -333,7 +336,6 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   Widget _locationRow(TextEditingController controller, IconData icon, Color iconColor, String hint, bool pickup) => Row(children: [Icon(icon, color: iconColor, size: 20), const SizedBox(width: 5), Expanded(child: TextField(controller: controller, onChanged: (v) => _onSearch(v, pickup: pickup), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primary), decoration: InputDecoration(hintText: hint, border: InputBorder.none, isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 10)))), IconButton(onPressed: () => _pickMapLocation(pickup: pickup), icon: const Icon(Icons.map_outlined, color: primary, size: 20))]);
 
   Widget _stopRow(int index) => Row(children: [Container(width: 24, height: 24, alignment: Alignment.center, decoration: const BoxDecoration(color: gold, shape: BoxShape.circle), child: Text('${index + 1}', style: const TextStyle(color: primary, fontWeight: FontWeight.w900, fontSize: 11))), const SizedBox(width: 5), Expanded(child: TextField(controller: stopControllers[index], onChanged: (v) => _onSearch(v, pickup: false, stopIndex: index), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primary), decoration: InputDecoration(hintText: 'Stop ${index + 1}', border: InputBorder.none, isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 10)))), IconButton(onPressed: () => _pickMapLocation(stopIndex: index), icon: const Icon(Icons.map_outlined, color: primary, size: 20)), IconButton(onPressed: () => _removeStop(index), icon: const Icon(Icons.close_rounded, color: Colors.grey, size: 19))]);
-
   Widget _airportToggle(String label, bool selected, VoidCallback tap) => InkWell(onTap: tap, borderRadius: BorderRadius.circular(12), child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: selected ? primary : Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: selected ? primary : border)), child: Center(child: Text(label, style: TextStyle(color: selected ? Colors.white : primary, fontWeight: FontWeight.bold, fontSize: 12.5)))));
   Widget _gearChip(String label, IconData icon, bool selected, VoidCallback tap) => InkWell(onTap: tap, borderRadius: BorderRadius.circular(12), child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: selected ? primary : Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: selected ? primary : border)), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 16, color: selected ? Colors.white : primary), const SizedBox(width: 6), Text(label, style: TextStyle(color: selected ? Colors.white : primary, fontWeight: FontWeight.bold, fontSize: 13))])));
   Widget _pill(String title, VoidCallback tap) => InkWell(onTap: tap, borderRadius: BorderRadius.circular(16), child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: border)), child: Text(title, style: const TextStyle(fontSize: 11, color: primary, fontWeight: FontWeight.w600))));
