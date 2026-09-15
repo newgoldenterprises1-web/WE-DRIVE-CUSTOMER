@@ -30,14 +30,12 @@ service cloud.firestore {
     }
 
     match /bookings/{bookingId} {
-      // Customer creates a request. Admin/driver roles are granted by trusted auth/backend code.
       allow create: if signedIn()
         && request.resource.data.customerId == request.auth.uid
         && request.resource.data.bookingId == bookingId
         && request.resource.data.status in ['SEARCHING', 'REQUESTED', 'searching', 'requested']
         && request.resource.data.driverId == null;
 
-      // Customer sees own booking, drivers see available/assigned work, and admins see all bookings.
       allow get: if signedIn() && (
         resource.data.customerId == request.auth.uid ||
         isAdmin() ||
@@ -52,9 +50,6 @@ service cloud.firestore {
         resource.data.customerId == request.auth.uid || isAdmin() || isDriver()
       );
 
-      // Customer can only cancel their own booking.
-      // Driver can only update operational fields after assignment.
-      // Admin can assign/reassign and manage the operational booking lifecycle.
       allow update: if signedIn() && (
         (
           resource.data.customerId == request.auth.uid
@@ -64,6 +59,7 @@ service cloud.firestore {
             'cancelledAt', 'cancelledBy', 'cancellationReason'
           ])
           && request.resource.data.status == 'cancelled'
+          && request.resource.data.bookingStatus == 'cancelled'
         ) || (
           isDriver()
           && resource.data.driverId == request.auth.uid
