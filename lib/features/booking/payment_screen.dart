@@ -36,6 +36,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   String selectedPaymentMethod = "UPI";
   bool isBooking = false;
+  DateTime? bookingDate;
+  TimeOfDay? bookingTime;
+
+  bool get isAirport => widget.serviceType.toLowerCase().contains('airport');
+  bool get isOutstation => widget.serviceType.toLowerCase().contains('outstation');
+  bool get requiresBookingSchedule => isAirport || isOutstation;
+
+  @override
+  void initState() {
+    super.initState();
+    if (requiresBookingSchedule) {
+      final now = DateTime.now();
+      bookingDate = DateTime(now.year, now.month, now.day);
+      bookingTime = TimeOfDay(hour: now.hour, minute: now.minute);
+    }
+  }
 
   double get driverPayout => widget.fare * 0.85;
   double get weDriveShare => widget.fare * 0.15;
@@ -46,7 +62,62 @@ class _PaymentScreenState extends State<PaymentScreen> {
     return List.generate(8, (index) => chars[random.nextInt(chars.length)]).join();
   }
 
+  String _formatDate(DateTime value) => '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
+
+  String _formatTime(TimeOfDay value) {
+    final hour = value.hourOfPeriod == 0 ? 12 : value.hourOfPeriod;
+    final minute = value.minute.toString().padLeft(2, '0');
+    final period = value.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
+
+  DateTime? get _selectedDateTime {
+    if (bookingDate == null || bookingTime == null) return null;
+    return DateTime(bookingDate!.year, bookingDate!.month, bookingDate!.day, bookingTime!.hour, bookingTime!.minute);
+  }
+
+  Future<void> _selectBookingDate() async {
+    final now = DateTime.now();
+    final firstDate = DateTime(now.year, now.month, now.day);
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: bookingDate ?? firstDate,
+      firstDate: firstDate,
+      lastDate: DateTime(now.year + 1, 12, 31),
+      helpText: isAirport ? 'Select Airport Booking Date' : 'Select Outstation Booking Date',
+    );
+    if (selected != null && mounted) {
+      setState(() => bookingDate = selected);
+    }
+  }
+
+  Future<void> _selectBookingTime() async {
+    final selected = await showTimePicker(
+      context: context,
+      initialTime: bookingTime ?? TimeOfDay.now(),
+      helpText: 'Select Booking Time',
+    );
+    if (selected != null && mounted) {
+      setState(() => bookingTime = selected);
+    }
+  }
+
+  void _selectToday() {
+    final now = DateTime.now();
+    setState(() => bookingDate = DateTime(now.year, now.month, now.day));
+  }
+
   Future<void> _processBooking() async {
+    if (requiresBookingSchedule && (bookingDate == null || bookingTime == null)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select booking date and time.')));
+      return;
+    }
+
+    if (requiresBookingSchedule && _selectedDateTime != null && _selectedDateTime!.isBefore(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a future booking time.')));
+      return;
+    }
+
     setState(() => isBooking = true);
 
     final newBookingId = _generateBookingId();
@@ -63,6 +134,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
 
     try {
+      final selectedDateTime = _selectedDateTime;
       await FirebaseFirestore.instance.collection('bookings').doc(newBookingId).set({
         'bookingId': newBookingId,
         'customerId': user.uid,
@@ -81,6 +153,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'paymentMethod': selectedPaymentMethod,
         'paymentStatus': selectedPaymentMethod == 'Cash' ? 'pending' : 'paid',
         'status': 'searching',
+        'bookingDate': requiresBookingSchedule && bookingDate != null ? _formatDate(bookingDate!) : null,
+        'bookingTime': requiresBookingSchedule && bookingTime != null ? _formatTime(bookingTime!) : null,
+        'scheduledDateTime': requiresBookingSchedule && selectedDateTime != null ? selectedDateTime.toIso8601String() : null,
+        'isScheduled': requiresBookingSchedule,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -219,6 +295,75 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ],
             ),
           ),
+          if (requiresBookingSchedule) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isAirport ? 'Airport Booking Schedule' : 'Outstation Booking Schedule',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primary),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    isAirport ? 'Choose today or a future airport pickup/drop time.' : 'Choose the date and time for your outstation trip.',
+                    style: const TextStyle(fontSize: 11.5, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _selectBookingDate,
+                          icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                          label: Text(bookingDate == null ? 'Select Date' : _formatDate(bookingDate!)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: primary,
+                            side: const BorderSide(color: border),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _selectBookingTime,
+                          icon: const Icon(Icons.access_time_rounded, size: 18),
+                          label: Text(bookingTime == null ? 'Select Time' : _formatTime(bookingTime!)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: primary,
+                            side: const BorderSide(color: border),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (isAirport) ...[
+                    const SizedBox(height: 9),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: _selectToday,
+                        icon: const Icon(Icons.today_rounded, size: 17),
+                        label: const Text('Today / Aaj'),
+                        style: TextButton.styleFrom(foregroundColor: primary),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           const Text(
             "Payment Options",
