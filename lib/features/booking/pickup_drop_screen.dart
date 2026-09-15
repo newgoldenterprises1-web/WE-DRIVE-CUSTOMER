@@ -1,11 +1,10 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart' as ll;
-
 import 'payment_screen.dart';
 
 class PickupDropScreen extends StatefulWidget {
@@ -24,6 +23,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   static const Color gold = Color(0xFFD4AF37);
   static const Color bg = Color(0xFFF8FAFC);
   static const Color border = Color(0xFFE2E8F0);
+
   final pickupController = TextEditingController();
   final dropController = TextEditingController();
   final MapController mapController = MapController();
@@ -36,6 +36,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   bool isSearching = false;
   bool searchPickup = false;
   int? searchStopIndex;
+
   static const ll.LatLng defaultLocation = ll.LatLng(17.3850, 78.4867);
   static const ll.LatLng airportLocation = ll.LatLng(17.2403, 78.4294);
   ll.LatLng pickupPos = defaultLocation;
@@ -50,7 +51,11 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
 
   bool get isAirport => widget.serviceType.toLowerCase().contains('airport');
   bool get isOutstation => widget.serviceType.toLowerCase().contains('outstation');
-  bool get isNightTime { final h = DateTime.now().hour; return h >= 22 || h < 6; }
+  bool get isNightTime {
+    final h = DateTime.now().hour;
+    return h >= 22 || h < 6;
+  }
+
   static const Map<int, double> standardDayRates = {1: 299, 2: 349, 4: 549, 6: 749, 8: 949, 12: 1299};
   static const Map<int, double> standardNightRates = {1: 499, 2: 549, 4: 749, 6: 949, 8: 1149, 12: 1499};
 
@@ -63,30 +68,44 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
 
   List<ll.LatLng> get _routeLocations {
     final points = <ll.LatLng>[pickupPos];
-    for (final p in stopPositions) { if (p != null) points.add(p); }
-    if (dropPos != null) points.add(dropPos!);
-    if (tripType == 'Round Trip') points.add(pickupPos);
+    for (final p in stopPositions) {
+      if (p != null) {
+        points.add(p);
+      }
+    }
+    if (dropPos != null) {
+      points.add(dropPos!);
+    }
+    if (tripType == 'Round Trip') {
+      points.add(pickupPos);
+    }
     return points;
   }
 
   List<ll.LatLng> get _drivers => [
-    ll.LatLng(pickupPos.latitude + .0035, pickupPos.longitude + .0028),
-    ll.LatLng(pickupPos.latitude - .0029, pickupPos.longitude - .0032),
-    ll.LatLng(pickupPos.latitude + .0018, pickupPos.longitude - .0041),
-  ];
+        ll.LatLng(pickupPos.latitude + .0035, pickupPos.longitude + .0028),
+        ll.LatLng(pickupPos.latitude - .0029, pickupPos.longitude - .0032),
+        ll.LatLng(pickupPos.latitude + .0018, pickupPos.longitude - .0041),
+      ];
 
   String get _routeSummary {
     final p = <String>['Pickup: ${pickupController.text.trim()}'];
-    for (var i = 0; i < stopControllers.length; i++) { p.add('Stop ${i + 1}: ${stopControllers[i].text.trim()}'); }
+    for (var i = 0; i < stopControllers.length; i++) {
+      p.add('Stop ${i + 1}: ${stopControllers[i].text.trim()}');
+    }
     p.add('Final Drop: ${dropController.text.trim()}');
-    if (tripType == 'Round Trip') p.add('Return: Pickup');
+    if (tripType == 'Round Trip') {
+      p.add('Return: Pickup');
+    }
     return p.join(' • ');
   }
 
   @override
   void initState() {
     super.initState();
-    if (widget.selectedHours != null && standardDayRates.containsKey(widget.selectedHours)) selectedHours = widget.selectedHours!;
+    if (widget.selectedHours != null && standardDayRates.containsKey(widget.selectedHours)) {
+      selectedHours = widget.selectedHours!;
+    }
     final t = widget.vehicleData?['transmission']?.toString() ?? '';
     transmission = t.toLowerCase().contains('auto') ? 'Automatic' : 'Manual';
     _handleAirportDefault();
@@ -95,8 +114,13 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
 
   void _handleAirportDefault() {
     if (!isAirport) return;
-    if (isToAirport) { dropController.text = 'RGIA Airport, Shamshabad'; dropPos = airportLocation; }
-    else { pickupController.text = 'RGIA Airport, Shamshabad'; pickupPos = airportLocation; }
+    if (isToAirport) {
+      dropController.text = 'RGIA Airport, Shamshabad';
+      dropPos = airportLocation;
+    } else {
+      pickupController.text = 'RGIA Airport, Shamshabad';
+      pickupPos = airportLocation;
+    }
     _getRoadRoute();
   }
 
@@ -108,7 +132,9 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
         final data = json.decode(res.body);
         final a = data['address'] as Map<String, dynamic>?;
         final n = a?['suburb'] ?? a?['neighbourhood'] ?? a?['road'] ?? a?['city_district'] ?? data['name'];
-        if (n != null && n.toString().isNotEmpty) return '${n.toString()}, Hyderabad';
+        if (n != null && n.toString().isNotEmpty) {
+          return '${n.toString()}, Hyderabad';
+        }
       }
     } catch (_) {}
     return 'Current Location, Hyderabad';
@@ -127,7 +153,9 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
       pickupController.text = await _reverseGeocode(pos.latitude, pos.longitude);
       mapController.move(pickupPos, 15.2);
       if (dropPos != null) _getRoadRoute();
-    } catch (_) {} finally { if (mounted) setState(() => isLoading = false); }
+    } catch (_) {} finally {
+      if (mounted) setState(() => isLoading = false);
+    }
   }
 
   Future<void> _getRoadRoute() async {
@@ -154,7 +182,10 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     _debounce?.cancel();
     searchPickup = pickup;
     searchStopIndex = stopIndex;
-    if (value.trim().length < 2) { setState(() => searchList = []); return; }
+    if (value.trim().length < 2) {
+      setState(() => searchList = []);
+      return;
+    }
     _debounce = Timer(const Duration(milliseconds: 300), () async {
       if (mounted) setState(() => isSearching = true);
       await _fallbackSearch(value);
@@ -170,7 +201,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
       final List list = json.decode(res.body);
       if (!mounted) return;
       setState(() {
-        searchList = list.map((item) {
+        searchList = list.map<Map<String, dynamic>>((item) {
           final a = item['address'] as Map<String, dynamic>? ?? {};
           final title = item['name'] != null && item['name'].toString().isNotEmpty ? item['name'].toString() : item['display_name'].toString().split(',').first;
           final area = a['suburb'] ?? a['neighbourhood'] ?? a['road'] ?? 'Hyderabad';
@@ -184,9 +215,17 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     setState(() {
       if (searchStopIndex != null) {
         final i = searchStopIndex!;
-        if (i < stopControllers.length) { stopControllers[i].text = name; stopPositions[i] = target; }
-      } else if (searchPickup) { pickupPos = target; pickupController.text = name; }
-      else { dropPos = target; dropController.text = name; }
+        if (i < stopControllers.length) {
+          stopControllers[i].text = name;
+          stopPositions[i] = target;
+        }
+      } else if (searchPickup) {
+        pickupPos = target;
+        pickupController.text = name;
+      } else {
+        dropPos = target;
+        dropController.text = name;
+      }
       searchList = [];
     });
     FocusScope.of(context).unfocus();
@@ -200,14 +239,24 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     if (selected == null) return;
     final addr = await _reverseGeocode(selected.latitude, selected.longitude);
     if (stopIndex != null) {
-      setState(() { stopPositions[stopIndex] = selected; stopControllers[stopIndex].text = addr; });
+      setState(() {
+        stopPositions[stopIndex] = selected;
+        stopControllers[stopIndex].text = addr;
+      });
       _getRoadRoute();
-    } else { searchPickup = pickup; searchStopIndex = null; _applySelection(selected, addr); }
+    } else {
+      searchPickup = pickup;
+      searchStopIndex = null;
+      _applySelection(selected, addr);
+    }
   }
 
   void _addStop() {
     if (stopControllers.length >= 3) return;
-    setState(() { stopControllers.add(TextEditingController()); stopPositions.add(null); });
+    setState(() {
+      stopControllers.add(TextEditingController());
+      stopPositions.add(null);
+    });
   }
 
   void _removeStop(int index) {
@@ -222,7 +271,9 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   void dispose() {
     pickupController.dispose();
     dropController.dispose();
-    for (final c in stopControllers) c.dispose();
+    for (final c in stopControllers) {
+      c.dispose();
+    }
     _debounce?.cancel();
     super.dispose();
   }
@@ -267,7 +318,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
               Row(children: <Widget>[
                 for (final d in <int>[1, 2, 3, 5])
                   Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 3), child: InkWell(onTap: () => setState(() => outstationDays = d), borderRadius: BorderRadius.circular(12), child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: outstationDays == d ? primary : Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: outstationDays == d ? primary : border)), child: Center(child: Text('$d Day${d > 1 ? 's' : ''}', style: TextStyle(color: outstationDays == d ? Colors.white : primary, fontWeight: FontWeight.bold, fontSize: 12))))))),
-              ],),
+              ]),
               const SizedBox(height: 14),
             ] else ...[
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Select Duration Package', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: primary)), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: isNightTime ? const Color(0xFF1E1B4B) : const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(8)), child: Text(isNightTime ? 'Night Fare (10 PM - 6 AM)' : 'Standard Day Fare', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isNightTime ? Colors.amber : const Color(0xFF92400E))))]),
@@ -304,9 +355,15 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
       ]),
       bottomNavigationBar: SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 14), child: ElevatedButton(
         onPressed: () {
-          if (pickupController.text.trim().isEmpty || dropController.text.trim().isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Select pickup & drop locations'))); return; }
+          if (pickupController.text.trim().isEmpty || dropController.text.trim().isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Select pickup & drop locations')));
+            return;
+          }
           for (var i = 0; i < stopControllers.length; i++) {
-            if (stopControllers[i].text.trim().isEmpty || stopPositions[i] == null) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Select Stop ${i + 1} location'))); return; }
+            if (stopControllers[i].text.trim().isEmpty || stopPositions[i] == null) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Select Stop ${i + 1} location')));
+              return;
+            }
           }
           final carLabel = widget.vehicleData != null ? '${widget.vehicleData!['model']} (${widget.vehicleData!['number']})' : 'Car ($transmission)';
           Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen(serviceType: widget.serviceType, pickupLocation: pickupController.text, dropLocation: _routeSummary, vehicleType: carLabel, fare: fare, selectedHours: isAirport ? null : selectedHours)));
@@ -318,20 +375,20 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   }
 
   Widget _routeCard() => Container(
-    padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: border)),
-    child: Column(children: [
-      _locationRow(pickupController, Icons.radio_button_checked, const Color(0xFF1A73E8), 'Pickup address', true),
-      Padding(padding: const EdgeInsets.only(left: 14), child: Container(height: 12, width: 1.5, color: border)),
-      for (var i = 0; i < stopControllers.length; i++) ...[
-        _stopRow(i),
-        Padding(padding: const EdgeInsets.only(left: 14), child: Container(height: 12, width: 1.5, color: border)),
-      ],
-      _locationRow(dropController, Icons.location_on, const Color(0xFFEA4335), 'Final drop destination', false),
-      const SizedBox(height: 8),
-      Align(alignment: Alignment.centerLeft, child: OutlinedButton.icon(onPressed: stopControllers.length < 3 ? _addStop : null, icon: const Icon(Icons.add_road, size: 17), label: Text(stopControllers.length < 3 ? 'Add Stop' : 'Maximum 3 Stops'), style: OutlinedButton.styleFrom(foregroundColor: primary, side: const BorderSide(color: border), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)))),
-    ]),
-  );
+        padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: border)),
+        child: Column(children: [
+          _locationRow(pickupController, Icons.radio_button_checked, const Color(0xFF1A73E8), 'Pickup address', true),
+          Padding(padding: const EdgeInsets.only(left: 14), child: Container(height: 12, width: 1.5, color: border)),
+          for (var i = 0; i < stopControllers.length; i++) ...[
+            _stopRow(i),
+            Padding(padding: const EdgeInsets.only(left: 14), child: Container(height: 12, width: 1.5, color: border)),
+          ],
+          _locationRow(dropController, Icons.location_on, const Color(0xFFEA4335), 'Final drop destination', false),
+          const SizedBox(height: 8),
+          Align(alignment: Alignment.centerLeft, child: OutlinedButton.icon(onPressed: stopControllers.length < 3 ? _addStop : null, icon: const Icon(Icons.add_road, size: 17), label: Text(stopControllers.length < 3 ? 'Add Stop' : 'Maximum 3 Stops'), style: OutlinedButton.styleFrom(foregroundColor: primary, side: const BorderSide(color: border), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)))),
+        ]),
+      );
 
   Widget _locationRow(TextEditingController controller, IconData icon, Color iconColor, String hint, bool pickup) => Row(children: [Icon(icon, color: iconColor, size: 20), const SizedBox(width: 5), Expanded(child: TextField(controller: controller, onChanged: (v) => _onSearch(v, pickup: pickup), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primary), decoration: InputDecoration(hintText: hint, border: InputBorder.none, isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 10)))), IconButton(onPressed: () => _pickMapLocation(pickup: pickup), icon: const Icon(Icons.map_outlined, color: primary, size: 20))]);
 
@@ -355,11 +412,11 @@ class _DropPickerState extends State<DropPicker> {
   void initState() { super.initState(); center = widget.initial; }
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(backgroundColor: const Color(0xFF173B6D), foregroundColor: Colors.white, title: Text(widget.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
-    body: Stack(children: [
-      FlutterMap(options: MapOptions(initialCenter: center, initialZoom: 15, onPositionChanged: (pos, _) { if (pos.center != null) center = pos.center!; }), children: [TileLayer(urlTemplate: 'https://mt1.google.com/vt/lyrs=m,traffic&x={x}&y={y}&z={z}', userAgentPackageName: 'com.wedrive.app')]),
-      const Center(child: Padding(padding: EdgeInsets.only(bottom: 32), child: Icon(Icons.location_on, color: Color(0xFFEA4335), size: 46))),
-      Positioned(left: 20, right: 20, bottom: 24, child: ElevatedButton(onPressed: () => Navigator.pop(context, center), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF173B6D), minimumSize: const Size.fromHeight(48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))), child: const Text('Confirm Location', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)))),
-    ]),
-  );
+        appBar: AppBar(backgroundColor: const Color(0xFF173B6D), foregroundColor: Colors.white, title: Text(widget.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+        body: Stack(children: [
+          FlutterMap(options: MapOptions(initialCenter: center, initialZoom: 15, onPositionChanged: (pos, _) { if (pos.center != null) center = pos.center!; }), children: [TileLayer(urlTemplate: 'https://mt1.google.com/vt/lyrs=m,traffic&x={x}&y={y}&z={z}', userAgentPackageName: 'com.wedrive.app')]),
+          const Center(child: Padding(padding: EdgeInsets.only(bottom: 32), child: Icon(Icons.location_on, color: Color(0xFFEA4335), size: 46))),
+          Positioned(left: 20, right: 20, bottom: 24, child: ElevatedButton(onPressed: () => Navigator.pop(context, center), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF173B6D), minimumSize: const Size.fromHeight(48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))), child: const Text('Confirm Location', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)))),
+        ]),
+      );
 }
