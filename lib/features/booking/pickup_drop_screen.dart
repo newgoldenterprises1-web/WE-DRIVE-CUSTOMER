@@ -66,7 +66,9 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
 
   List<ll.LatLng> get _routeLocations {
     final points = <ll.LatLng>[pickupPos];
-    for (final p in stopPositions) { if (p != null) points.add(p); }
+    for (final p in stopPositions) {
+      if (p != null) points.add(p);
+    }
     if (dropPos != null) points.add(dropPos!);
     if (tripType == 'Round Trip') points.add(pickupPos);
     return points;
@@ -80,7 +82,9 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
 
   String get _routeSummary {
     final p = <String>['Pickup: ${pickupController.text.trim()}'];
-    for (var i = 0; i < stopControllers.length; i++) p.add('Stop ${i + 1}: ${stopControllers[i].text.trim()}');
+    for (var i = 0; i < stopControllers.length; i++) {
+      p.add('Stop ${i + 1}: ${stopControllers[i].text.trim()}');
+    }
     p.add('Final Drop: ${dropController.text.trim()}');
     if (tripType == 'Round Trip') p.add('Return: Pickup');
     return p.join(' • ');
@@ -295,7 +299,12 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
       bottomNavigationBar: SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 14), child: ElevatedButton(
         onPressed: () {
           if (pickupController.text.trim().isEmpty || dropController.text.trim().isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Select pickup & drop locations'))); return; }
-          for (var i = 0; i < stopControllers.length; i++) { if (stopControllers[i].text.trim().isEmpty || stopPositions[i] == null) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Select Stop ${i + 1} location'))); return; } }
+          for (var i = 0; i < stopControllers.length; i++) {
+            if (stopControllers[i].text.trim().isEmpty || stopPositions[i] == null) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Select Stop ${i + 1} location')));
+              return;
+            }
+          }
           final carLabel = widget.vehicleData != null ? '${widget.vehicleData!['model']} (${widget.vehicleData!['number']})' : 'Car ($transmission)';
           Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen(serviceType: widget.serviceType, pickupLocation: pickupController.text, dropLocation: _routeSummary, vehicleType: carLabel, fare: fare, selectedHours: isAirport ? null : selectedHours)));
         },
@@ -311,7 +320,10 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     child: Column(children: [
       _locationRow(pickupController, Icons.radio_button_checked, const Color(0xFF1A73E8), 'Pickup address', true),
       Padding(padding: const EdgeInsets.only(left: 14), child: Container(height: 12, width: 1.5, color: border)),
-      for (var i = 0; i < stopControllers.length; i++) ...[_stopRow(i), Padding(padding: const EdgeInsets.only(left: 14), child: Container(height: 12, width: 1.5, color: border))],
+      for (var i = 0; i < stopControllers.length; i++) ...[
+        _stopRow(i),
+        Padding(padding: const EdgeInsets.only(left: 14), child: Container(height: 12, width: 1.5, color: border)),
+      ],
       _locationRow(dropController, Icons.location_on, const Color(0xFFEA4335), 'Final drop destination', false),
       const SizedBox(height: 8),
       Align(alignment: Alignment.centerLeft, child: OutlinedButton.icon(onPressed: stopControllers.length < 3 ? _addStop : null, icon: const Icon(Icons.add_road, size: 17), label: Text(stopControllers.length < 3 ? 'Add Stop' : 'Maximum 3 Stops'), style: OutlinedButton.styleFrom(foregroundColor: primary, side: const BorderSide(color: border), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)))),
