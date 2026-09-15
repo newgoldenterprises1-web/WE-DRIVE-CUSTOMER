@@ -35,13 +35,13 @@ plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
 
     // Android Gradle Plugin
-    id("com.android.application") version "8.13.0" apply false
+    id("com.android.application") version "9.0.1" apply false
     // START: FlutterFire Configuration
     id("com.google.gms.google-services") version("4.4.4") apply false
     // END: FlutterFire Configuration
 
     // Kotlin
-    id("org.jetbrains.kotlin.android") version "2.2.20" apply false
+    id("org.jetbrains.kotlin.android") version "2.3.20" apply false
 }
 
 include(":app")
