@@ -23,11 +23,32 @@ class AuthService {
       );
     }
 
-    await _functions.httpsCallable('ensureCustomerAccount').call({
-      'name': user.displayName,
-      'email': user.email,
-      'phone': user.phoneNumber,
-    });
+    try {
+      await _functions.httpsCallable('ensureCustomerAccount').call({
+        'name': user.displayName,
+        'email': user.email,
+        'phone': user.phoneNumber,
+      });
+    } on FirebaseFunctionsException catch (error) {
+      // The customer app can still operate from its own Firestore user
+      // document while the trusted callable is unavailable/not deployed.
+      // Do not hide other backend failures.
+      if (error.code != 'not-found' && error.code != 'unavailable') {
+        rethrow;
+      }
+    }
+
+    await _firestore.collection('users').doc(user.uid).set(
+      {
+        'uid': user.uid,
+        'name': user.displayName,
+        'email': user.email,
+        'phone': user.phoneNumber,
+        'role': 'customer',
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
 
     await user.getIdToken(true);
   }
