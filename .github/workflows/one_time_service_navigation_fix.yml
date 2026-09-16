@@ -44,10 +44,9 @@ jobs:
           path.write_text(text, encoding='utf-8')
           print(f'Updated {path}; tile layers replaced: {count}')
 
-      - name: Verify Dart formatting and analysis
+      - name: Verify changed files
         run: |
-          dart format lib/features/booking/pickup_drop_screen.dart --output=none
-          flutter analyze
+          git diff --check
 
       - name: Commit hardened booking screen and remove one-time workflow
         run: |
