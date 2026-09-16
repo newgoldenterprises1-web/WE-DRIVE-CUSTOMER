@@ -30,10 +30,12 @@ service cloud.firestore {
     }
 
     match /bookings/{bookingId} {
+      // Customer booking creation is intentionally limited to the signed-in
+      // customer who owns the booking. The app sets operational status to
+      // "searching"; backend/admin logic controls later status changes.
       allow create: if signedIn()
         && request.resource.data.customerId == request.auth.uid
         && request.resource.data.bookingId == bookingId
-        && request.resource.data.status in ['SEARCHING', 'REQUESTED', 'searching', 'requested']
         && request.resource.data.driverId == null;
 
       allow get: if signedIn() && (
