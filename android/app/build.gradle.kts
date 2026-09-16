@@ -62,19 +62,17 @@ extensions.configure<ApplicationExtension> {
     }
 
     buildTypes {
-        release {
-            if (googleMapsApiKey.isBlank()) {
-                throw GradleException(
-                    "WE DRIVE Customer Google Maps API key is not configured. " +
-                        "Set GOOGLE_MAPS_API_KEY in android/local.properties or the build environment."
-                )
-            }
+        debug {
+            // Debug builds must remain buildable even when the local Maps key is not present.
+            // The key is still injected automatically when configured in android/local.properties.
+        }
 
+        release {
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             } else {
-                // Allow local/debug validation builds to complete before production signing is configured.
-                // A release keystore must be configured before publishing a production APK/AAB.
+                // Allow local validation before production signing is configured.
+                // A real release keystore is required before publishing a production APK/AAB.
                 signingConfig = signingConfigs.getByName("debug")
             }
         }
