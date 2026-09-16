@@ -569,8 +569,33 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
       const SizedBox(height: 9),
       buildTripType(),
     ]);
-    if (tripType == 'Round Trip') content.addAll(<Widget>[const SizedBox(height: 7), Row(children: <Widget>[const Icon(Icons.info_outline_rounded, size: 16, color: primary), const SizedBox(width: 6), Expanded(child: Text(multipleStopsEnabled ? 'Add up to 3 stops before the final drop. The chauffeur returns to pickup.' : 'The chauffeur returns to your pickup after the final drop.', style: const TextStyle(fontSize: 11.5, color: primary, fontWeight: FontWeight.w600)))] )]);
-    content.addAll(<Widget>[const SizedBox(height: 16), sectionLabel('Chauffeur preference', 'Choose manual or automatic before reviewing your ride.'), const SizedBox(height: 9), buildTransmission(), const SizedBox(height: 16), sectionLabel('Your route', 'Set pickup, optional stops and final destination.'), const SizedBox(height: 9), buildRouteCard()]);
+    if (tripType == 'Round Trip') {
+      content.addAll(<Widget>[
+        const SizedBox(height: 7),
+        Row(
+          children: <Widget>[
+            const Icon(Icons.info_outline_rounded, size: 16, color: primary),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                multipleStopsEnabled ? 'Add up to 3 stops before the final drop. The chauffeur returns to pickup.' : 'The chauffeur returns to your pickup after the final drop.',
+                style: const TextStyle(fontSize: 11.5, color: primary, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ]);
+    }
+    content.addAll(<Widget>[
+      const SizedBox(height: 16),
+      sectionLabel('Chauffeur preference', 'Choose manual or automatic before reviewing your ride.'),
+      const SizedBox(height: 9),
+      buildTransmission(),
+      const SizedBox(height: 16),
+      sectionLabel('Your route', 'Set pickup, optional stops and final destination.'),
+      const SizedBox(height: 9),
+      buildRouteCard(),
+    ]);
     if (searchList.isNotEmpty) content.addAll(<Widget>[const SizedBox(height: 8), buildSearchResults()]);
     content.addAll(<Widget>[const SizedBox(height: 14), buildQuickLocations(), const SizedBox(height: 90)]);
     return content;
@@ -580,7 +605,14 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(gradient: const LinearGradient(colors: <Color>[Color(0xFF102B4F), Color(0xFF173B6D)]), borderRadius: BorderRadius.circular(20), border: Border.all(color: gold.withValues(alpha: 0.45))),
-      child: Row(children: <Widget>[Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.10), shape: BoxShape.circle), child: const Icon(Icons.workspace_premium_rounded, color: gold, size: 25)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[const Text('Premium chauffeur', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)), const SizedBox(height: 3), Text('Priority experience with a polished booking flow.', style: TextStyle(color: Colors.white70, fontSize: 11.5))])), const Icon(Icons.verified_rounded, color: gold, size: 22)]),
+      child: Row(
+        children: <Widget>[
+          Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.10), shape: BoxShape.circle), child: const Icon(Icons.workspace_premium_rounded, color: gold, size: 25)),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[const Text('Premium chauffeur', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)), const SizedBox(height: 3), Text('Priority experience with a polished booking flow.', style: TextStyle(color: Colors.white70, fontSize: 11.5))])),
+          const Icon(Icons.verified_rounded, color: gold, size: 22),
+        ],
+      ),
     );
   }
 
@@ -593,7 +625,35 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   }
 
   Widget optionCard(String title, String subtitle, IconData icon, bool selected, VoidCallback onTap) {
-    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(17), child: AnimatedContainer(duration: const Duration(milliseconds: 180), padding: const EdgeInsets.all(13), decoration: BoxDecoration(color: selected ? primary : Colors.white, borderRadius: BorderRadius.circular(17), border: Border.all(color: selected ? primary : border)), child: Row(children: <Widget>[Icon(icon, color: selected ? Colors.white : primary, size: 22), const SizedBox(width: 9), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[Text(title, style: TextStyle(color: selected ? Colors.white : primary, fontSize: 12, fontWeight: FontWeight.w800)), const SizedBox(height: 2), Text(subtitle, style: TextStyle(color: selected ? Colors.white70 : Colors.grey.shade600, fontSize: 10.5))]))]));
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(17),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(13),
+        decoration: BoxDecoration(
+          color: selected ? primary : Colors.white,
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(color: selected ? primary : border),
+        ),
+        child: Row(
+          children: <Widget>[
+            Icon(icon, color: selected ? Colors.white : primary, size: 22),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(title, style: TextStyle(color: selected ? Colors.white : primary, fontSize: 12, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: TextStyle(color: selected ? Colors.white70 : Colors.grey.shade600, fontSize: 10.5)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget buildOutstationOptions() {
@@ -615,7 +675,23 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   }
 
   Widget gearChip(String label, IconData icon, bool selected, VoidCallback onTap) {
-    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(12), child: AnimatedContainer(duration: const Duration(milliseconds: 180), padding: const EdgeInsets.symmetric(vertical: 11), decoration: BoxDecoration(color: selected ? primary : Colors.transparent, borderRadius: BorderRadius.circular(12)), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[Icon(icon, size: 16, color: selected ? Colors.white : primary), const SizedBox(width: 6), Text(label, style: TextStyle(color: selected ? Colors.white : primary, fontWeight: FontWeight.w800, fontSize: 12.5))])));
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        decoration: BoxDecoration(color: selected ? primary : Colors.transparent, borderRadius: BorderRadius.circular(12)),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(icon, size: 16, color: selected ? Colors.white : primary),
+            const SizedBox(width: 6),
+            Text(label, style: TextStyle(color: selected ? Colors.white : primary, fontWeight: FontWeight.w800, fontSize: 12.5)),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget buildRouteCard() {
@@ -676,7 +752,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   }
 
   Widget buildRouteStats() {
-    return Positioned(top: 14, left: 18, right: 18, child: Container(padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: const <BoxShadow>[BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 3))]), child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: <Widget>[Text('$tripKm km', style: const TextStyle(fontWeight: FontWeight.w900, color: primary, fontSize: 12.5)), const Text('|', style: TextStyle(color: border)), Text('$tripMins mins', style: const TextStyle(fontWeight: FontWeight.w900, color: primary, fontSize: 12.5)), const Text('|', style: TextStyle(color: border)), const Text('Drivers nearby', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.green, fontSize: 11.5))])));
+    return Positioned(top: 14, left: 18, right: 18, child: Container(padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: const <BoxShadow>[BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 3))]), child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: <Widget>[Text('${tripKm?.toStringAsFixed(1) ?? '--'} km', style: const TextStyle(fontWeight: FontWeight.w900, color: primary, fontSize: 12.5)), const Text('|', style: TextStyle(color: border)), Text('${tripMins ?? '--'} mins', style: const TextStyle(fontWeight: FontWeight.w900, color: primary, fontSize: 12.5)), const Text('|', style: TextStyle(color: border)), const Text('Drivers nearby', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.green, fontSize: 11.5))]));
   }
 
   @override
@@ -740,7 +816,6 @@ class DropPicker extends StatefulWidget {
 class _DropPickerState extends State<DropPicker> {
   late ll.LatLng center;
   static const Color primaryColor = Color(0xFF173B6D);
-  static const Color gold = Color(0xFFD4AF37);
 
   @override
   void initState() {
