@@ -1,5 +1,6 @@
 name: One-time service navigation hardening
 
+# trigger: service-screen hardening
 on:
   push:
     branches: [main]
