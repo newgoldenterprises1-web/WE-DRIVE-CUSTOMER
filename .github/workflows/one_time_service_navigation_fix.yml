@@ -1,0 +1,58 @@
+name: One-time service navigation hardening
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  fix:
+    if: ${{ !contains(github.event.head_commit.message, '[service-safe-fix]') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Harden pickup/drop startup and map loading
+        shell: python
+        run: |
+          from pathlib import Path
+          import sys
+
+          path = Path('lib/features/booking/pickup_drop_screen.dart')
+          text = path.read_text(encoding='utf-8-sig')
+
+          old_init = """    if (!isPremiumLanding) {\n      handleAirportDefault();\n      fetchLiveGps();\n    }"""
+          new_init = """    if (!isPremiumLanding) {\n      // Paint the booking screen first. Location and routing must never delay or\n      // prevent the destination screen from becoming visible after a service tap.\n      WidgetsBinding.instance.addPostFrameCallback((_) {\n        if (!mounted) return;\n        handleAirportDefault();\n        fetchLiveGps();\n      });\n    }"""
+          if old_init not in text:
+              print('Expected initState block not found', file=sys.stderr)
+              sys.exit(1)
+          text = text.replace(old_init, new_init, 1)
+
+          old_tile = "TileLayer(urlTemplate: 'https://mt1.google.com/vt/lyrs=m,traffic&x={x}&y={y}&z={z}', userAgentPackageName: 'com.wedrive.app'),"
+          new_tile = "TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.wedrive.app'),"
+          count = text.count(old_tile)
+          if count < 1:
+              print('Expected map tile layer not found', file=sys.stderr)
+              sys.exit(1)
+          text = text.replace(old_tile, new_tile)
+
+          path.write_text(text, encoding='utf-8')
+          print(f'Updated {path}; tile layers replaced: {count}')
+
+      - name: Verify Dart formatting and analysis
+        run: |
+          dart format lib/features/booking/pickup_drop_screen.dart --output=none
+          flutter analyze
+
+      - name: Commit hardened booking screen and remove one-time workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/features/booking/pickup_drop_screen.dart .github/workflows/one_time_service_navigation_fix.yml
+          git diff --cached --quiet && echo 'No changes to commit' && exit 0
+          git commit -m 'Fix service navigation startup [service-safe-fix]'
+          git push origin HEAD:main
