@@ -106,8 +106,13 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     selectedHours = widget.selectedHours != null && dayRates.containsKey(widget.selectedHours) ? widget.selectedHours! : 2;
     transmission = (widget.vehicleData?['transmission']?.toString().toLowerCase().contains('auto') ?? false) ? 'Automatic' : 'Manual';
     if (!isPremiumLanding) {
-      handleAirportDefault();
-      fetchLiveGps();
+      // Paint the booking screen first. Location and routing must never delay or
+      // prevent the destination screen from becoming visible after a service tap.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        handleAirportDefault();
+        fetchLiveGps();
+      });
     }
   }
 
@@ -652,7 +657,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
       mapController: mapController,
       options: MapOptions(initialCenter: pickupPos, initialZoom: 15),
       children: <Widget>[
-        TileLayer(urlTemplate: 'https://mt1.google.com/vt/lyrs=m,traffic&x={x}&y={y}&z={z}', userAgentPackageName: 'com.wedrive.app'),
+        TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.wedrive.app'),
         if (routePoints.isNotEmpty) PolylineLayer(polylines: <Polyline>[Polyline(points: routePoints, strokeWidth: 5.5, color: widget.isPremium ? gold : blue)]),
         MarkerLayer(markers: <Marker>[
           Marker(point: pickupPos, width: 50, height: 50, child: Container(decoration: BoxDecoration(color: primary, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 3)), child: const Icon(Icons.directions_car_filled, color: Colors.white, size: 20))),
