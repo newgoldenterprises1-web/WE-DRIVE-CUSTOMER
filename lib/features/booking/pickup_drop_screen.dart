@@ -526,7 +526,48 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   }
 
   Widget optionCard(String title, String subtitle, IconData icon, bool selected, VoidCallback onTap) {
-    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(17), child: AnimatedContainer(duration: const Duration(milliseconds: 180), padding: const EdgeInsets.all(13), decoration: BoxDecoration(color: selected ? primary : Colors.white, borderRadius: BorderRadius.circular(17), border: Border.all(color: selected ? primary : border)), child: Row(children: <Widget>[Icon(icon, color: selected ? Colors.white : primary, size: 22), const SizedBox(width: 9), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[Text(title, style: TextStyle(color: selected ? Colors.white : primary, fontSize: 12, fontWeight: FontWeight.w800)), const SizedBox(height: 2), Text(subtitle, style: TextStyle(color: selected ? Colors.white70 : Colors.grey.shade600, fontSize: 10.5))]))]));
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(17),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(13),
+        decoration: BoxDecoration(
+          color: selected ? primary : Colors.white,
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(color: selected ? primary : border),
+        ),
+        child: Row(
+          children: <Widget>[
+            Icon(icon, color: selected ? Colors.white : primary, size: 22),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: selected ? Colors.white : primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: selected ? Colors.white70 : Colors.grey.shade600,
+                      fontSize: 10.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget buildOutstationOptions() {
@@ -569,7 +610,22 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     return Container(padding: const EdgeInsets.fromLTRB(12, 13, 8, 13), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: widget.isPremium ? gold.withValues(alpha: 0.38) : border), boxShadow: const <BoxShadow>[BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 3))]), child: Column(children: children));
   }
 
-  Widget routeConnector() => Padding(padding: const EdgeInsets.only(left: 17), child: Align(alignment: Alignment.centerLeft, child: Container(height: 14, width: 2, decoration: BoxDecoration(color: border, borderRadius: BorderRadius.circular(2))));
+  Widget routeConnector() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 17),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          height: 14,
+          width: 2,
+          decoration: BoxDecoration(
+            color: border,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget routeLocationRow({required TextEditingController controller, required IconData icon, required Color color, required String label, required String hint, required bool pickup}) {
     return Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4), child: Row(children: <Widget>[Icon(icon, color: color, size: 20), const SizedBox(width: 9), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[Text(label, style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600, fontWeight: FontWeight.w700)), TextField(controller: controller, onChanged: (String value) => onSearchChanged(value, pickup: pickup), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: primary), decoration: InputDecoration(hintText: hint, hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12.5), border: InputBorder.none, isDense: true, contentPadding: const EdgeInsets.only(top: 3)))])), IconButton(onPressed: () => pickMapLocation(pickup: pickup), icon: const Icon(Icons.map_outlined, color: primary, size: 21))]));
