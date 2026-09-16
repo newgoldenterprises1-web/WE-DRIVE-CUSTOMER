@@ -1,5 +1,8 @@
+import com.android.build.api.dsl.ApplicationExtension
 import java.io.FileInputStream
 import java.util.Properties
+import org.gradle.kotlin.dsl.configure
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
@@ -27,7 +30,7 @@ if (hasReleaseSigning) {
     FileInputStream(signingPropertiesFile).use { signingProperties.load(it) }
 }
 
-android {
+extensions.configure<ApplicationExtension> {
     namespace = "com.example.we_drive_v2"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
@@ -45,10 +48,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
     }
 
     if (hasReleaseSigning) {
@@ -79,6 +78,12 @@ android {
                 signingConfig = signingConfigs.getByName("debug")
             }
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
