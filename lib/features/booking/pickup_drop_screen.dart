@@ -392,7 +392,6 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   }
 
   Widget _locationCard({required String field, required String label}) {
-    final bool fixedAirportPickup = isAirport && field == 'pickup';
     final String value;
     if (field == 'pickup') {
       value = pickup;
@@ -408,7 +407,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
 
 
     return InkWell(
-      onTap: fixedAirportPickup ? null : () => _pickLocation(field: field),
+      onTap: (isAirport && field == 'pickup') ? null : () => _pickLocation(field: field),
       borderRadius: BorderRadius.circular(18),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -457,7 +456,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
                   Text(
                     hasValue
                         ? value
-                        : fixedAirportPickup
+                        : (isAirport && field == 'pickup')
                             ? 'Rajiv Gandhi International Airport, Hyderabad'
                             : 'Select location on Google Maps',
                     maxLines: 2,
@@ -472,7 +471,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
               ),
             ),
             Icon(
-              fixedAirportPickup
+              (isAirport && field == 'pickup')
                   ? Icons.lock_rounded
                   : Icons.chevron_right_rounded,
               color: primary,
