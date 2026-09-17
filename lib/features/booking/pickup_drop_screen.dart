@@ -76,9 +76,14 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     super.initState();
     selectedHours = widget.selectedHours ?? 2;
     if (![1, 2, 4, 6, 8, 12].contains(selectedHours)) selectedHours = 2;
+    if (isAirport) {
+      pickup = 'Rajiv Gandhi International Airport, Hyderabad';
+    }
   }
 
   Future<void> _pickLocation({required String field}) async {
+    if (isAirport && field == 'pickup') return;
+
     final String? result = await Navigator.push<String>(
       context,
       MaterialPageRoute<String>(
@@ -207,12 +212,6 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
 
   Widget _serviceSwitcher() {
     final options = <Map<String, Object>>[
-      <String, Object>{
-        'title': 'Premium Chauffeur',
-        'subtitle': 'Premium',
-        'icon': Icons.workspace_premium_rounded,
-        'premium': true,
-      },
       <String, Object>{
         'title': 'Hourly Driver',
         'subtitle': 'By hour',
@@ -380,7 +379,12 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: primary),
+            Icon(
+              fixedAirportPickup
+                  ? Icons.lock_rounded
+                  : Icons.chevron_right_rounded,
+              color: primary,
+            ),
           ],
         ),
       ),
@@ -400,8 +404,10 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
 
     final hasValue = value.trim().isNotEmpty;
 
+    final bool fixedAirportPickup = isAirport && field == 'pickup';
+
     return InkWell(
-      onTap: () => _pickLocation(field: field),
+      onTap: fixedAirportPickup ? null : () => _pickLocation(field: field),
       borderRadius: BorderRadius.circular(18),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -448,7 +454,11 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    hasValue ? value : 'Select location on Google Maps',
+                    hasValue
+                        ? value
+                        : fixedAirportPickup
+                            ? 'Rajiv Gandhi International Airport, Hyderabad'
+                            : 'Select location on Google Maps',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
