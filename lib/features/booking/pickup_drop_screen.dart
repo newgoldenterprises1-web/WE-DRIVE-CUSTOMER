@@ -470,11 +470,8 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
                 ],
               ),
             ),
-            Icon(
-              widget.serviceType.toLowerCase().contains('airport') &&
-                      field == 'pickup'
-                  ? Icons.lock_rounded
-                  : Icons.chevron_right_rounded,
+            const Icon(
+              Icons.chevron_right_rounded,
               color: primary,
             ),
           ],
