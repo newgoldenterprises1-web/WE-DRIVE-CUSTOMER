@@ -17,6 +17,8 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
   static const Color primary = Color(0xFF174C52);
   static const LatLng defaultPosition = LatLng(17.3850, 78.4867);
 
+  final Geocoding _geocoding = Geocoding();
+
   GoogleMapController? _controller;
   late LatLng _selected;
   String _address = 'Move the pin or tap the map to select a location';
@@ -42,7 +44,7 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
     });
 
     try {
-      final placemarks = await placemarkFromCoordinates(
+      final placemarks = await _geocoding.placemarkFromCoordinates(
         position.latitude,
         position.longitude,
       );
@@ -97,7 +99,7 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
 
     setState(() => _searching = true);
     try {
-      final locations = await locationFromAddress(query);
+      final locations = await _geocoding.locationFromAddress(query);
       if (locations.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
