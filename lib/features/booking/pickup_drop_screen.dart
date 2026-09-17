@@ -403,6 +403,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     }
 
     final hasValue = value.trim().isNotEmpty;
+    final bool fixedAirportPickup = isAirport && field == 'pickup';
 
     final bool fixedAirportPickup = isAirport && field == 'pickup';
 
