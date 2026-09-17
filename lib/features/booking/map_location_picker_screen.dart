@@ -101,7 +101,9 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
       if (locations.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location not found. Try a fuller address.')),
+            const SnackBar(
+              content: Text('Location not found. Try a fuller address.'),
+            ),
           );
         }
         return;
@@ -109,12 +111,16 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
 
       final location = locations.first;
       final target = LatLng(location.latitude, location.longitude);
-      await _controller?.animateCamera(CameraUpdate.newLatLngZoom(target, 16));
+      await _controller?.animateCamera(
+        CameraUpdate.newLatLngZoom(target, 16),
+      );
       await _resolveAddress(target);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unable to search this location right now.')),
+          const SnackBar(
+            content: Text('Unable to search this location right now.'),
+          ),
         );
       }
     } finally {
@@ -130,7 +136,9 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
       if (!await Geolocator.isLocationServiceEnabled()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please enable device location services.')),
+            const SnackBar(
+              content: Text('Please enable device location services.'),
+            ),
           );
         }
         return;
@@ -145,22 +153,32 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
           permission == LocationPermission.deniedForever) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location permission is required to use your current location.')),
+            const SnackBar(
+              content: Text(
+                'Location permission is required to use your current location.',
+              ),
+            ),
           );
         }
         return;
       }
 
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
       final target = LatLng(position.latitude, position.longitude);
-      await _controller?.animateCamera(CameraUpdate.newLatLngZoom(target, 17));
+      await _controller?.animateCamera(
+        CameraUpdate.newLatLngZoom(target, 17),
+      );
       await _resolveAddress(target);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unable to get current location right now.')),
+          const SnackBar(
+            content: Text('Unable to get current location right now.'),
+          ),
         );
       }
     } finally {
@@ -190,7 +208,10 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
       body: Stack(
         children: [
           GoogleMap(
-            initialCameraPosition: CameraPosition(target: _selected, zoom: 15),
+            initialCameraPosition: CameraPosition(
+              target: _selected,
+              zoom: 15,
+            ),
             myLocationEnabled: true,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
@@ -275,7 +296,9 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.16),
@@ -304,7 +327,10 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
                         ),
                         Text(
                           'Drag pin to adjust',
-                          style: TextStyle(color: Colors.grey, fontSize: 11),
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 11,
+                          ),
                         ),
                       ],
                     ),
@@ -313,7 +339,11 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
                       _loadingAddress ? 'Finding address...' : _address,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.black87, fontSize: 13, height: 1.35),
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 13,
+                        height: 1.35,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     SizedBox(
@@ -322,12 +352,17 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
                       child: ElevatedButton.icon(
                         onPressed: _loadingAddress ? null : _confirm,
                         icon: const Icon(Icons.check_rounded),
-                        label: const Text('Use This Location', style: TextStyle(fontWeight: FontWeight.w800)),
+                        label: const Text(
+                          'Use This Location',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primary,
                           foregroundColor: Colors.white,
                           disabledBackgroundColor: primary.withValues(alpha: 0.35),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
                       ),
                     ),
