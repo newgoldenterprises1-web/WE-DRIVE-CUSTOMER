@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart' as geocoding;
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -17,6 +17,7 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
   static const Color primary = Color(0xFF174C52);
   static const LatLng defaultPosition = LatLng(17.3850, 78.4867);
 
+  final Geocoding _geocoder = Geocoding();
   GoogleMapController? _controller;
   late LatLng _selected;
   String _address = 'Move the pin or tap the map to select a location';
@@ -42,7 +43,7 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
     });
 
     try {
-      final placemarks = await geocoding.placemarkFromCoordinates(
+      final placemarks = await _geocoder.placemarkFromCoordinates(
         position.latitude,
         position.longitude,
       );
@@ -97,7 +98,7 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
 
     setState(() => _searching = true);
     try {
-      final locations = await geocoding.locationFromAddress(query);
+      final locations = await _geocoder.locationFromAddress(query);
       if (locations.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -359,7 +360,8 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primary,
                           foregroundColor: Colors.white,
-                          disabledBackgroundColor: primary.withValues(alpha: 0.35),
+                          disabledBackgroundColor:
+                              primary.withValues(alpha: 0.35),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
