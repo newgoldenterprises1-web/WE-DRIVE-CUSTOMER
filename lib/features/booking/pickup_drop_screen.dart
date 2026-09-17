@@ -269,7 +269,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
                 onTap: selected
                     ? null
                     : () {
-                        Navigator.pushReplacement<void>(
+                        Navigator.pushReplacement(
                           context,
                           MaterialPageRoute<void>(
                             builder: (_) => PickupDropScreen(
