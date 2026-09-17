@@ -405,7 +405,9 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     final hasValue = value.trim().isNotEmpty;
 
     return InkWell(
-      onTap: (isAirport && field == 'pickup') ? null : () => _pickLocation(field: field),
+      onTap: (widget.serviceType.toLowerCase().contains('airport') && field == 'pickup')
+          ? null
+          : () => _pickLocation(field: field),
       borderRadius: BorderRadius.circular(18),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -454,7 +456,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
                   Text(
                     hasValue
                         ? value
-                        : (isAirport && field == 'pickup')
+                        : (widget.serviceType.toLowerCase().contains('airport') && field == 'pickup')
                             ? 'Rajiv Gandhi International Airport, Hyderabad'
                             : 'Select location on Google Maps',
                     maxLines: 2,
@@ -469,7 +471,8 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
               ),
             ),
             Icon(
-              widget.isAirport
+              widget.serviceType.toLowerCase().contains('airport') &&
+                      field == 'pickup'
                   ? Icons.lock_rounded
                   : Icons.chevron_right_rounded,
               color: primary,
