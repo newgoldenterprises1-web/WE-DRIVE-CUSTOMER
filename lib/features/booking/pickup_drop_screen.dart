@@ -380,7 +380,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
               ),
             ),
             Icon(
-              fixedAirportPickup
+              (isAirport && field == 'pickup')
                   ? Icons.lock_rounded
                   : Icons.chevron_right_rounded,
               color: primary,
