@@ -205,15 +205,141 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     if (mounted) setState(() => isNavigating = false);
   }
 
-  void _selectPremiumService(String service) {
-    Navigator.push<void>(
-      context,
-      MaterialPageRoute<void>(
-        builder: (_) => PickupDropScreen(
-          serviceType: service,
-          isPremium: true,
+  Widget _serviceSwitcher() {
+    final options = <Map<String, Object>>[
+      <String, Object>{
+        'title': 'Premium Chauffeur',
+        'subtitle': 'Premium',
+        'icon': Icons.workspace_premium_rounded,
+        'premium': true,
+      },
+      <String, Object>{
+        'title': 'Hourly Driver',
+        'subtitle': 'By hour',
+        'icon': Icons.access_time_rounded,
+        'premium': false,
+      },
+      <String, Object>{
+        'title': 'Airport Transfer',
+        'subtitle': 'Airport',
+        'icon': Icons.flight_takeoff_rounded,
+        'premium': false,
+      },
+      <String, Object>{
+        'title': 'Outstation',
+        'subtitle': 'Long distance',
+        'icon': Icons.alt_route_rounded,
+        'premium': false,
+      },
+      <String, Object>{
+        'title': 'Advance Booking',
+        'subtitle': 'Schedule',
+        'icon': Icons.calendar_month_rounded,
+        'premium': false,
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Text(
+          'Services',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+            color: primary,
+          ),
         ),
-      ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 62,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: options.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (_, index) {
+              final option = options[index];
+              final title = option['title']! as String;
+              final subtitle = option['subtitle']! as String;
+              final icon = option['icon']! as IconData;
+              final premium = option['premium']! as bool;
+              final selected = title == widget.serviceType;
+
+              return InkWell(
+                onTap: selected
+                    ? null
+                    : () {
+                        Navigator.pushReplacement<void>(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => PickupDropScreen(
+                              serviceType: title,
+                              isPremium: premium,
+                              premiumFare: premium ? '₹799' : null,
+                              selectedHours: premium ? selectedHours : null,
+                              vehicleData: widget.vehicleData,
+                            ),
+                          ),
+                        );
+                      },
+                borderRadius: BorderRadius.circular(16),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  width: 132,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: selected ? primary : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: selected ? primary : border,
+                    ),
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      Icon(
+                        icon,
+                        size: 20,
+                        color: selected ? gold : primary,
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: selected ? Colors.white : primary,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: selected
+                                    ? Colors.white70
+                                    : Colors.grey.shade600,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -488,6 +614,9 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
             ],
           ),
         ),
+        const SizedBox(height: 18),
+        const SizedBox(height: 14),
+        _serviceSwitcher(),
         const SizedBox(height: 18),
         const Text('Pickup & Drop', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: primary)),
         const SizedBox(height: 10),
