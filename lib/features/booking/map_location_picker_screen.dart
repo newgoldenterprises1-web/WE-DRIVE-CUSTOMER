@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:geocoding/geocoding.dart' as geocoding;
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -42,7 +42,7 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
     });
 
     try {
-      final placemarks = await placemarkFromCoordinates(
+      final placemarks = await geocoding.placemarkFromCoordinates(
         position.latitude,
         position.longitude,
       );
@@ -97,7 +97,7 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
 
     setState(() => _searching = true);
     try {
-      final locations = await locationFromAddress(query);
+      final locations = await geocoding.locationFromAddress(query);
       if (locations.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -304,7 +304,7 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
                         ),
                         Text(
                           'Drag pin to adjust',
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                          style: TextStyle(color: Colors.grey, fontSize: 11),
                         ),
                       ],
                     ),
