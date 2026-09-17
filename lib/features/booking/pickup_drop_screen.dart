@@ -392,6 +392,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   }
 
   Widget _locationCard({required String field, required String label}) {
+    final bool fixedAirportPickup = isAirport && field == 'pickup';
     final String value;
     if (field == 'pickup') {
       value = pickup;
