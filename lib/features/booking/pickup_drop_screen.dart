@@ -406,7 +406,6 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
 
     final bool fixedAirportPickup = isAirport && field == 'pickup';
 
-    final bool fixedAirportPickup = isAirport && field == 'pickup';
 
     return InkWell(
       onTap: fixedAirportPickup ? null : () => _pickLocation(field: field),
