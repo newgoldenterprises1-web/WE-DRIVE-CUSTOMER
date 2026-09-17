@@ -392,7 +392,6 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   }
 
   Widget _locationCard({required String field, required String label}) {
-    final bool fixedAirportPickup = isAirport && field == 'pickup';
     final String value;
     if (field == 'pickup') {
       value = pickup;
@@ -404,6 +403,8 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     }
 
     final hasValue = value.trim().isNotEmpty;
+
+    final bool fixedAirportPickup = isAirport && field == 'pickup';
 
     final bool fixedAirportPickup = isAirport && field == 'pickup';
 
@@ -471,7 +472,12 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: primary),
+            Icon(
+              fixedAirportPickup
+                  ? Icons.lock_rounded
+                  : Icons.chevron_right_rounded,
+              color: primary,
+            ),
           ],
         ),
       ),
