@@ -131,7 +131,7 @@ class HomeScreen extends StatelessWidget {
               child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                 stream: FirebaseFirestore.instance
                     .collection('bookings')
-                    .where('userId', isEqualTo: user?.uid ?? 'guest_user')
+                    .where('customerId', isEqualTo: user?.uid ?? 'guest_user')
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -709,7 +709,14 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                stream: FirebaseFirestore.instance.collection('bookings').orderBy('createdAt', descending: true).limit(1).snapshots(),
+                stream: user == null
+                    ? const Stream<QuerySnapshot<Map<String, dynamic>>>.empty()
+                    : FirebaseFirestore.instance
+                        .collection('bookings')
+                        .where('customerId', isEqualTo: user.uid)
+                        .orderBy('createdAt', descending: true)
+                        .limit(1)
+                        .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
                     final data = snapshot.data!.docs.first.data();
