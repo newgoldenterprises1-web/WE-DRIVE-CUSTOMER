@@ -404,8 +404,6 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
 
     final hasValue = value.trim().isNotEmpty;
 
-
-
     return InkWell(
       onTap: (isAirport && field == 'pickup') ? null : () => _pickLocation(field: field),
       borderRadius: BorderRadius.circular(18),
