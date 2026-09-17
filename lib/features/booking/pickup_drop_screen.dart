@@ -615,9 +615,12 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
           ),
         ),
         const SizedBox(height: 18),
-        const SizedBox(height: 14),
-        _serviceSwitcher(),
-        const SizedBox(height: 18),
+        if (isPremiumLanding) ...[
+          const SizedBox(height: 14),
+          _serviceSwitcher(),
+          const SizedBox(height: 18),
+        ] else
+          const SizedBox(height: 14),
         const Text('Pickup & Drop', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: primary)),
         const SizedBox(height: 10),
         _locationCard(field: 'pickup', label: 'Pickup Location'),
