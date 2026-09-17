@@ -489,45 +489,53 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
           ),
         ),
         const SizedBox(height: 18),
+        const Text('Pickup & Drop', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: primary)),
+        const SizedBox(height: 10),
+        _locationCard(field: 'pickup', label: 'Pickup Location'),
+        const SizedBox(height: 10),
         if (supportsRouteOptions) ...[
           const Text('Trip Type', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: primary)),
           const SizedBox(height: 8),
           _tripTypeSelector(),
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
         ],
-        const Text('Choose locations', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: primary)),
-        const SizedBox(height: 8),
-        _locationCard(field: 'pickup', label: 'Pickup Location'),
         if (supportsRouteOptions) ...[
-          const SizedBox(height: 12),
           _stopsSection(),
+          const SizedBox(height: 14),
         ],
-        const SizedBox(height: 10),
         _locationCard(field: 'drop', label: 'Drop Location'),
-        if (!isAirport && !isOutstation && !isAdvance) ...[
-          const SizedBox(height: 18),
+        if (widget.isPremium) ...[
+          const SizedBox(height: 14),
           const Text('Duration', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: primary)),
           const SizedBox(height: 8),
           _hoursSelector(),
         ],
         if (showSchedule) ...[
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
           const Text('Schedule', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: primary)),
           const SizedBox(height: 8),
-          _scheduleTile(
-            Icons.event_rounded,
-            'Travel date',
-            scheduledDate == null
-                ? 'Select date'
-                : '${scheduledDate!.day}/${scheduledDate!.month}/${scheduledDate!.year}',
-            _pickDate,
-          ),
-          const SizedBox(height: 8),
-          _scheduleTile(
-            Icons.access_time_filled_rounded,
-            'Pickup time',
-            scheduledTime == null ? 'Select time' : scheduledTime!.format(context),
-            _pickTime,
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _scheduleTile(
+                  Icons.calendar_today_rounded,
+                  'Date',
+                  scheduledDate == null
+                      ? 'Choose date'
+                      : '${scheduledDate!.day}/${scheduledDate!.month}/${scheduledDate!.year}',
+                  _pickDate,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _scheduleTile(
+                  Icons.access_time_rounded,
+                  'Time',
+                  scheduledTime == null ? 'Choose time' : scheduledTime!.format(context),
+                  _pickTime,
+                ),
+              ),
+            ],
           ),
         ],
         const SizedBox(height: 18),
@@ -535,7 +543,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: border),
           ),
           child: Row(
@@ -547,7 +555,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
                   const Text('Estimated fare', style: TextStyle(color: Colors.black54, fontSize: 11)),
                   const SizedBox(height: 5),
                   Text(
-                    '${tripType}${stops.isEmpty ? '' : ' • ${stops.length} stop${stops.length == 1 ? '' : 's'}'}',
+                    '$tripType${stops.isEmpty ? '' : ' • ${stops.length} stop${stops.length == 1 ? '' : 's'}'}',
                     style: const TextStyle(color: primary, fontWeight: FontWeight.w700, fontSize: 12),
                   ),
                 ],
@@ -556,181 +564,41 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
             ],
           ),
         ),
+        const SizedBox(height: 18),
+        SizedBox(
+          height: 54,
+          child: ElevatedButton.icon(
+            onPressed: isNavigating ? null : _reviewAndBook,
+            icon: isNavigating
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.arrow_forward_rounded),
+            label: const Text('Continue to Payment', style: TextStyle(fontWeight: FontWeight.w900)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+          ),
+        ),
       ],
-    );
-  }
-
-  Widget _premiumLanding() {
-    return Scaffold(
-      backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor: deep,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text('WE DRIVE', style: TextStyle(fontSize: 12, color: gold, fontWeight: FontWeight.w800)),
-            Text('Premium Chauffeur', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          ],
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-        children: <Widget>[
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: <Color>[deep, primary],
-              ),
-              borderRadius: BorderRadius.circular(26),
-              boxShadow: const <BoxShadow>[
-                BoxShadow(color: Colors.black26, blurRadius: 16, offset: Offset(0, 6)),
-              ],
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Icon(Icons.workspace_premium_rounded, color: gold, size: 30),
-                    SizedBox(width: 10),
-                    Text('Premium Experience', style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w900)),
-                  ],
-                ),
-                SizedBox(height: 8),
-                Text('Professional chauffeurs, elevated comfort and a booking flow designed for a premium ride.', style: TextStyle(color: Colors.white70, fontSize: 12.5, height: 1.4)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          const Text('Choose a service', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: primary)),
-          const SizedBox(height: 4),
-          Text('Simple names. Clear choices. Pick what you need.', style: TextStyle(color: Colors.grey.shade600, fontSize: 12.5)),
-          const SizedBox(height: 12),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 0.98,
-            children: <Widget>[
-              _premiumCard('Hourly Chauffeur', 'Book a chauffeur by the hour.', Icons.access_time_rounded, () => _selectPremiumService('Premium Hourly Driver'), featured: true),
-              _premiumCard('Airport Transfer', 'Smooth pickup or drop at the airport.', Icons.flight_takeoff_rounded, () => _selectPremiumService('Premium Airport Transfer')),
-              _premiumCard('Outstation Chauffeur', 'Comfortable long-distance travel.', Icons.alt_route_rounded, () => _selectPremiumService('Premium Outstation')),
-              _premiumCard('Advance Booking', 'Schedule your chauffeur ahead of time.', Icons.event_available_rounded, () => _selectPremiumService('Premium Advance Booking')),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: border)),
-            child: const Row(
-              children: <Widget>[
-                Icon(Icons.verified_rounded, color: Colors.green, size: 20),
-                SizedBox(width: 9),
-                Expanded(child: Text('Professional service • Transparent pricing • Easy booking', style: TextStyle(color: primary, fontSize: 12, fontWeight: FontWeight.w700))),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _premiumCard(
-    String title,
-    String subtitle,
-    IconData icon,
-    VoidCallback onTap, {
-    bool featured = false,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(22),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: featured
-              ? const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: <Color>[Color(0xFF102B4F), primary],
-                )
-              : null,
-          color: featured ? null : Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: featured ? gold.withValues(alpha: 0.65) : border),
-          boxShadow: const <BoxShadow>[
-            BoxShadow(color: Colors.black12, blurRadius: 12, offset: Offset(0, 5)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: featured ? Colors.white.withValues(alpha: 0.10) : primary.withValues(alpha: 0.07),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(icon, color: featured ? gold : primary, size: 25),
-                ),
-                const Spacer(),
-                if (featured) const Icon(Icons.star_rounded, color: gold, size: 20),
-              ],
-            ),
-            const Spacer(),
-            Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: featured ? Colors.white : primary)),
-            const SizedBox(height: 4),
-            Text(subtitle, style: TextStyle(fontSize: 11.5, height: 1.25, color: featured ? Colors.white70 : Colors.grey.shade600)),
-          ],
-        ),
-      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isPremiumLanding) return _premiumLanding();
-
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: deep,
-        foregroundColor: Colors.white,
+        title: Text(widget.serviceType),
+        backgroundColor: Colors.white,
+        foregroundColor: primary,
         elevation: 0,
-        title: Text(widget.serviceType, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
       ),
       body: _bookingBody(),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-        child: ElevatedButton(
-          onPressed: isNavigating ? null : _reviewAndBook,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: primary,
-            foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(54),
-            elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          ),
-          child: isNavigating
-              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    Text('₹${fare.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-                    const Text('Review & Book  →', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-                  ],
-                ),
-        ),
-      ),
     );
   }
 }
