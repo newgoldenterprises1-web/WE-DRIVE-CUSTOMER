@@ -77,12 +77,12 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     selectedHours = widget.selectedHours ?? 2;
     if (![1, 2, 4, 6, 8, 12].contains(selectedHours)) selectedHours = 2;
     if (isAirport) {
-      pickup = 'Rajiv Gandhi International Airport, Hyderabad';
+      drop = 'Rajiv Gandhi International Airport, Hyderabad';
     }
   }
 
   Future<void> _pickLocation({required String field}) async {
-    if (isAirport && field == 'pickup') return;
+    if (isAirport && field == 'drop') return;
 
     final String? result = await Navigator.push<String>(
       context,
@@ -405,7 +405,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     final hasValue = value.trim().isNotEmpty;
 
     return InkWell(
-      onTap: (widget.serviceType.toLowerCase().contains('airport') && field == 'pickup')
+      onTap: (widget.serviceType.toLowerCase().contains('airport') && field == 'drop')
           ? null
           : () => _pickLocation(field: field),
       borderRadius: BorderRadius.circular(18),
@@ -456,7 +456,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
                   Text(
                     hasValue
                         ? value
-                        : (widget.serviceType.toLowerCase().contains('airport') && field == 'pickup')
+                        : (widget.serviceType.toLowerCase().contains('airport') && field == 'drop')
                             ? 'Rajiv Gandhi International Airport, Hyderabad'
                             : 'Select location on Google Maps',
                     maxLines: 2,
