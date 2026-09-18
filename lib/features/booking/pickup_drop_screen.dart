@@ -38,7 +38,6 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   DateTime? scheduledDate;
   TimeOfDay? scheduledTime;
   bool isNavigating = false;
-  String airportDirection = 'Airport Pickup';
 
   bool get isPremiumLanding =>
       widget.isPremium && widget.serviceType == 'Premium Chauffeur';
@@ -76,20 +75,12 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   void initState() {
     super.initState();
     selectedHours = widget.selectedHours ?? 2;
-    if (![1, 2, 4, 6, 8, 12].contains(selectedHours)) selectedHours = 2;
-    if (isAirport && airportDirection == 'Airport Pickup') {
-      pickup = 'Rajiv Gandhi International Airport, Hyderabad';
+    if (![1, 2, 4, 6, 8, 12].contains(selectedHours)) {
+      selectedHours = 2;
     }
   }
 
   Future<void> _pickLocation({required String field}) async {
-    final bool fixedAirportLocation =
-        isAirport &&
-        ((airportDirection == 'Airport Pickup' && field == 'pickup') ||
-            (airportDirection == 'Airport Drop' && field == 'drop'));
-
-    if (fixedAirportLocation) return;
-
     final String? result = await Navigator.push<String>(
       context,
       MaterialPageRoute<String>(
@@ -97,8 +88,11 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
       ),
     );
 
-    if (!mounted || result == null || result.trim().isEmpty) return;
-    final value = result.trim();
+    if (!mounted || result == null || result.trim().isEmpty) {
+      return;
+    }
+
+    final String value = result.trim();
 
     setState(() {
       if (field == 'pickup') {
@@ -106,7 +100,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
       } else if (field == 'drop') {
         drop = value;
       } else {
-        final index = int.tryParse(field);
+        final int? index = int.tryParse(field);
         if (index != null && index >= 0 && index < stops.length) {
           stops[index] = value;
         }
@@ -348,65 +342,6 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     );
   }
 
-  Widget _airportDirectionSelector() {
-    return Container(
-      padding: const EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: border),
-      ),
-      child: Row(
-        children: <Widget>[
-          for (final type in const <String>[
-            'Airport Pickup',
-            'Airport Drop',
-          ])
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    airportDirection = type;
-                    pickup = '';
-                    drop = '';
-
-                    if (type == 'Airport Pickup') {
-                      pickup =
-                          'Rajiv Gandhi International Airport, Hyderabad';
-                    } else {
-                      drop =
-                          'Rajiv Gandhi International Airport, Hyderabad';
-                    }
-                  });
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: airportDirection == type
-                        ? primary
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    type,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: airportDirection == type
-                          ? Colors.white
-                          : primary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   Widget _scheduleTile(
     IconData icon,
     String label,
@@ -417,7 +352,10 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(16),
@@ -431,23 +369,38 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
                 color: primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: primary, size: 20),
+              child: Icon(
+                icon,
+                color: primary,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 11,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(value, style: const TextStyle(color: primary, fontSize: 14, fontWeight: FontWeight.w800)),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      color: primary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ],
               ),
             ),
-            Icon(
-              fixedAirportLocation
-                  ? Icons.lock_rounded
-                  : Icons.chevron_right_rounded,
+            const Icon(
+              Icons.chevron_right_rounded,
               color: primary,
             ),
           ],
@@ -456,27 +409,28 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     );
   }
 
-  Widget _locationCard({required String field, required String label}) {
+  Widget _locationCard({
+    required String field,
+    required String label,
+  }) {
     final String value;
+
     if (field == 'pickup') {
       value = pickup;
     } else if (field == 'drop') {
       value = drop;
     } else {
-      final index = int.tryParse(field) ?? -1;
-      value = index >= 0 && index < stops.length ? stops[index] : '';
+      final int index = int.tryParse(field) ?? -1;
+      value =
+          index >= 0 && index < stops.length
+              ? stops[index]
+              : '';
     }
 
-    final hasValue = value.trim().isNotEmpty;
-    final bool fixedAirportLocation =
-        isAirport &&
-        ((airportDirection == 'Airport Pickup' && field == 'pickup') ||
-            (airportDirection == 'Airport Drop' && field == 'drop'));
+    final bool hasValue = value.trim().isNotEmpty;
 
     return InkWell(
-      onTap: fixedAirportLocation
-          ? null
-          : () => _pickLocation(field: field),
+      onTap: () => _pickLocation(field: field),
       borderRadius: BorderRadius.circular(18),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -484,10 +438,16 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: hasValue ? primary.withValues(alpha: 0.35) : border,
+            color: hasValue
+                ? primary.withValues(alpha: 0.35)
+                : border,
           ),
           boxShadow: const <BoxShadow>[
-            BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4)),
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
           ],
         ),
         child: Row(
@@ -505,13 +465,15 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
                     : field == 'drop'
                         ? Icons.location_on_rounded
                         : Icons.add_location_alt_rounded,
-                color: field == 'pickup' ? primary : gold,
+                color:
+                    field == 'pickup' ? primary : gold,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
                     label,
@@ -525,14 +487,14 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
                   Text(
                     hasValue
                         ? value
-                        : fixedAirportLocation
-                            ? 'Rajiv Gandhi International Airport, Hyderabad'
-                            : 'Select location on Google Maps',
+                        : 'Select location on Google Maps',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 14,
-                      color: hasValue ? primary : Colors.grey.shade500,
+                      color: hasValue
+                          ? primary
+                          : Colors.grey.shade500,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -705,19 +667,6 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
           const SizedBox(height: 14),
         const Text('Pickup & Drop', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: primary)),
         const SizedBox(height: 10),
-        if (isAirport) ...[
-          const Text(
-            'Airport Service',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
-              color: primary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _airportDirectionSelector(),
-          const SizedBox(height: 14),
-        ],
         _locationCard(field: 'pickup', label: 'Pickup Location'),
         const SizedBox(height: 10),
         if (supportsRouteOptions) ...[
