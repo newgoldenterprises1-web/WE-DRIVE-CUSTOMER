@@ -38,6 +38,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
   DateTime? scheduledDate;
   TimeOfDay? scheduledTime;
   bool isNavigating = false;
+  String airportDirection = 'Airport Pickup';
 
   bool get isPremiumLanding =>
       widget.isPremium && widget.serviceType == 'Premium Chauffeur';
@@ -76,13 +77,18 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     super.initState();
     selectedHours = widget.selectedHours ?? 2;
     if (![1, 2, 4, 6, 8, 12].contains(selectedHours)) selectedHours = 2;
-    if (isAirport) {
-      drop = 'Rajiv Gandhi International Airport, Hyderabad';
+    if (isAirport && airportDirection == 'Airport Pickup') {
+      pickup = 'Rajiv Gandhi International Airport, Hyderabad';
     }
   }
 
   Future<void> _pickLocation({required String field}) async {
-    if (isAirport && field == 'drop') return;
+    final bool fixedAirportLocation =
+        isAirport &&
+        ((airportDirection == 'Airport Pickup' && field == 'pickup') ||
+            (airportDirection == 'Airport Drop' && field == 'drop'));
+
+    if (fixedAirportLocation) return;
 
     final String? result = await Navigator.push<String>(
       context,
@@ -342,6 +348,65 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     );
   }
 
+  Widget _airportDirectionSelector() {
+    return Container(
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: <Widget>[
+          for (final type in const <String>[
+            'Airport Pickup',
+            'Airport Drop',
+          ])
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    airportDirection = type;
+                    pickup = '';
+                    drop = '';
+
+                    if (type == 'Airport Pickup') {
+                      pickup =
+                          'Rajiv Gandhi International Airport, Hyderabad';
+                    } else {
+                      drop =
+                          'Rajiv Gandhi International Airport, Hyderabad';
+                    }
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: airportDirection == type
+                        ? primary
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    type,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: airportDirection == type
+                          ? Colors.white
+                          : primary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _scheduleTile(
     IconData icon,
     String label,
@@ -380,7 +445,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
               ),
             ),
             Icon(
-              (isAirport && field == 'pickup')
+              fixedAirportLocation
                   ? Icons.lock_rounded
                   : Icons.chevron_right_rounded,
               color: primary,
@@ -403,9 +468,13 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
     }
 
     final hasValue = value.trim().isNotEmpty;
+    final bool fixedAirportLocation =
+        isAirport &&
+        ((airportDirection == 'Airport Pickup' && field == 'pickup') ||
+            (airportDirection == 'Airport Drop' && field == 'drop'));
 
     return InkWell(
-      onTap: (widget.serviceType.toLowerCase().contains('airport') && field == 'drop')
+      onTap: fixedAirportLocation
           ? null
           : () => _pickLocation(field: field),
       borderRadius: BorderRadius.circular(18),
@@ -456,7 +525,7 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
                   Text(
                     hasValue
                         ? value
-                        : (widget.serviceType.toLowerCase().contains('airport') && field == 'drop')
+                        : fixedAirportLocation
                             ? 'Rajiv Gandhi International Airport, Hyderabad'
                             : 'Select location on Google Maps',
                     maxLines: 2,
@@ -636,6 +705,19 @@ class _PickupDropScreenState extends State<PickupDropScreen> {
           const SizedBox(height: 14),
         const Text('Pickup & Drop', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: primary)),
         const SizedBox(height: 10),
+        if (isAirport) ...[
+          const Text(
+            'Airport Service',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              color: primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _airportDirectionSelector(),
+          const SizedBox(height: 14),
+        ],
         _locationCard(field: 'pickup', label: 'Pickup Location'),
         const SizedBox(height: 10),
         if (supportsRouteOptions) ...[
