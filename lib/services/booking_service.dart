@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class BookingService {
@@ -6,6 +7,7 @@ class BookingService {
 
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
+  static final FirebaseFunctions _functions = FirebaseFunctions.instanceFor(region: 'asia-south1');
 
   static CollectionReference<Map<String, dynamic>> get _bookings =>
       _firestore.collection('bookings');
@@ -41,17 +43,8 @@ class BookingService {
       (additionalData?['requestPreferences'] as Map?) ?? {},
     );
 
-    // A customer app must never mark a payment as completed by itself.
-    // A trusted payment backend/webhook must perform that transition.
-    final safePaymentStatus = paymentStatus.toLowerCase() == 'paid'
-        ? 'pending'
-        : paymentStatus;
-
-    final bookingRef = _bookings.doc();
-    final data = <String, dynamic>{
-      ...?additionalData,
-      'bookingId': bookingRef.id,
-      'customerId': user.uid,
+    // Booking creation is performed by the trusted backend.
+    final result = await _functions.httpsCallable('createCustomerBooking').call(<String, dynamic>{
       'serviceType': serviceType,
       'pickupLocation': pickupLocation,
       'dropLocation': dropLocation,
@@ -66,18 +59,22 @@ class BookingService {
       'transmission': transmission,
       'fuelType': fuelType,
       'fare': fare,
-      'paymentMethod': paymentMethod,
-      'paymentStatus': safePaymentStatus,
-      'status': 'searching',
-      'bookingStatus': 'searching',
-      'driverId': null,
+      'specialInstruction': additionalData?['specialInstruction'],
+      'serviceMode': additionalData?['serviceMode'],
       'requestPreferences': requestPreferences,
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    };
-
-    await bookingRef.set(data);
-    return bookingRef.id;
+    });
+    final response = Map<String, dynamic>.from(
+      (result.data as Map?) ?? const <String, dynamic>{},
+    );
+    final bookingId = response['bookingId']?.toString().trim() ?? '';
+    if (bookingId.isEmpty) {
+      throw FirebaseException(
+        plugin: 'cloud_functions',
+        code: 'invalid-response',
+        message: 'Booking backend did not return a booking ID.',
+      );
+    }
+    return bookingId;
   }
 
   static Future<DocumentSnapshot<Map<String, dynamic>>> getBooking(
