@@ -101,53 +101,16 @@ class BookingService {
     required String bookingId,
     String reason = 'Cancelled by customer',
   }) async {
-    final user = _auth.currentUser;
-    if (user == null) {
+    if (_auth.currentUser == null) {
       throw FirebaseAuthException(
         code: 'not-signed-in',
         message: 'Please login first.',
       );
     }
 
-    final bookingRef = _bookings.doc(bookingId);
-    final snapshot = await bookingRef.get();
-    if (!snapshot.exists) {
-      throw FirebaseException(
-        plugin: 'cloud_firestore',
-        code: 'booking-not-found',
-        message: 'Booking not found.',
-      );
-    }
-
-    final data = snapshot.data() ?? {};
-    if (data['customerId'] != user.uid) {
-      throw FirebaseException(
-        plugin: 'cloud_firestore',
-        code: 'permission-denied',
-        message: 'You cannot cancel this booking.',
-      );
-    }
-
-    final currentStatus = (data['status'] ?? data['bookingStatus'] ?? '')
-        .toString()
-        .toUpperCase();
-    if ({
-      'COMPLETED',
-      'CANCELLED',
-      'TRIP_STARTED',
-      'IN_PROGRESS',
-      'STARTED',
-    }.contains(currentStatus)) {
-      return;
-    }
-
-    await bookingRef.update({
-      'status': 'cancelled',
-      'bookingStatus': 'cancelled',
-      'cancelledBy': 'customer',
-      'cancellationReason': reason,
-      'cancelledAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
+    await _functions.httpsCallable('cancelCustomerBooking').call({
+      'bookingId': bookingId,
+      'reason': reason,
     });
   }
 
