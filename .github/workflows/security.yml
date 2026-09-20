@@ -8,20 +8,26 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
-  codeql:
-    name: CodeQL
+  flutter-security:
+    name: Flutter static security checks
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [javascript]
     steps:
-      - uses: actions/checkout@v4
-      - uses: github/codeql-action/init@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
-          languages: ${{ matrix.language }}
-      - uses: github/codeql-action/autobuild@v3
-      - uses: github/codeql-action/analyze@v3
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze Dart/Flutter source
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run tests
+        run: flutter test
