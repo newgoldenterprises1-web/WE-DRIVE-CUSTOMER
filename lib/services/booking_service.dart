@@ -101,26 +101,60 @@ class BookingService {
     required String bookingId,
     String reason = 'Cancelled by customer',
   }) async {
-    if (_auth.currentUser == null) {
+    final user = _auth.currentUser;
+    if (user == null) {
       throw FirebaseAuthException(
         code: 'not-signed-in',
         message: 'Please login first.',
       );
     }
 
-    // The customer app creates bookings directly from the current booking flow,
-    // so make sure the signed-in Firebase user has the customer role claim before
-    // calling the protected cancellation backend.
-    await _functions.httpsCallable('ensureCustomerAccount').call({
-      'name': _auth.currentUser?.displayName,
-      'email': _auth.currentUser?.email,
-      'phone': _auth.currentUser?.phoneNumber,
-    });
-    await _auth.currentUser!.getIdToken(true);
+    final bookingRef = _bookings.doc(bookingId);
 
-    await _functions.httpsCallable('cancelCustomerBooking').call({
-      'bookingId': bookingId,
-      'reason': reason,
+    // Customer cancellation is enforced by Firestore security rules:
+    // only the booking owner can change the allowed cancellation fields.
+    final snap = await bookingRef.get();
+    if (!snap.exists) {
+      throw FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'not-found',
+        message: 'Booking not found.',
+      );
+    }
+
+    final data = snap.data() ?? <String, dynamic>{};
+    if ((data['customerId'] ?? '').toString() != user.uid) {
+      throw FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'permission-denied',
+        message: 'You cannot cancel this booking.',
+      );
+    }
+
+    final current = (data['status'] ?? data['bookingStatus'] ?? '')
+        .toString()
+        .toUpperCase();
+    if (const {
+      'COMPLETED',
+      'CANCELLED',
+      'TRIP_STARTED',
+      'IN_PROGRESS',
+      'STARTED',
+    }.contains(current)) {
+      throw FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'failed-precondition',
+        message: 'This booking can no longer be cancelled.',
+      );
+    }
+
+    await bookingRef.update({
+      'status': 'cancelled',
+      'bookingStatus': 'cancelled',
+      'cancelledBy': 'customer',
+      'cancellationReason': reason,
+      'cancelledAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
