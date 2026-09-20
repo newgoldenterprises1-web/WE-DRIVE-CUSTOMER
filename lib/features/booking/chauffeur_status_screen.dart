@@ -78,19 +78,17 @@ class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
         final partnerId = (booking['partnerId'] ?? '').toString();
 
         return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-          stream: partnerId.isEmpty
-              ? null
-              : FirebaseFirestore.instance.collection('partnerPublic').doc(partnerId).snapshots(),
+          stream: null,
           builder: (context, partnerSnapshot) {
-            final partner = partnerSnapshot.data?.data() ?? <String, dynamic>{};
-            final driverName = (booking['driverName'] ?? partner['name'] ?? partner['fullName'] ?? 'Assigned Chauffeur').toString();
-            final phone = (booking['driverPhone'] ?? partner['phoneNumber'] ?? '').toString();
-            final rating = _number(booking['driverRating'] ?? partner['rating'], fallback: 5.0);
-            final experience = (booking['driverExperience'] ?? partner['experience'] ?? partner['experienceYears'] ?? '').toString();
-            final verified = booking['driverVerified'] == true || partner['verified'] == true || partner['verificationStatus'] == 'VERIFIED';
+            final partner = <String, dynamic>{};
+            final driverName = (booking['driverName'] ?? 'Assigned Chauffeur').toString();
+            final phone = (booking['driverPhone'] ?? '').toString();
+            final rating = _number(booking['driverRating'], fallback: 5.0);
+            final experience = (booking['driverExperience'] ?? '').toString();
+            final verified = booking['driverVerified'] == true;
             final vehicle = _vehicleData(booking, partner);
-            final lat = _number(partner['latitude'], fallback: double.nan);
-            final lng = _number(partner['longitude'], fallback: double.nan);
+            final lat = _number(booking['chauffeurLatitude'], fallback: double.nan);
+            final lng = _number(booking['chauffeurLongitude'], fallback: double.nan);
             final hasLocation = lat.isFinite && lng.isFinite;
 
             return Scaffold(
@@ -106,7 +104,7 @@ class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
                 children: [
                   _statusHeader(status),
                   const SizedBox(height: 14),
-                  _mapCard(hasLocation, lat, lng, partner),
+                  _mapCard(hasLocation, lat, lng, driverName),
                   const SizedBox(height: 14),
                   if (partnerId.isNotEmpty) _driverCard(driverName, phone, rating, experience, verified, vehicle, status),
                   if (partnerId.isNotEmpty) const SizedBox(height: 14),
@@ -249,7 +247,7 @@ class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
     return 'WE DRIVE professional chauffeur service.';
   }
 
-  Widget _mapCard(bool hasLocation, double lat, double lng, Map<String, dynamic> partner) {
+  Widget _mapCard(bool hasLocation, double lat, double lng, String driverName) {
     return Container(
       height: 240,
       clipBehavior: Clip.antiAlias,
@@ -264,7 +262,7 @@ class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
                 Marker(
                   markerId: const MarkerId('chauffeur'),
                   position: LatLng(lat, lng),
-                  infoWindow: InfoWindow(title: (partner['name'] ?? 'WE DRIVE Chauffeur').toString()),
+                  infoWindow: InfoWindow(title: driverName),
                 ),
               },
             )
