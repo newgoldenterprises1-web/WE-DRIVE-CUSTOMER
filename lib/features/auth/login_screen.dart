@@ -6,6 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../app/navigation_screen.dart';
 import '../otp/otp_verification_screen.dart';
+import '../../services/auth_service.dart';
 import 'create_account_screen.dart';
 import 'profile_completion_screen.dart';
 
@@ -76,6 +77,8 @@ class _LoginScreenState extends State<LoginScreen> {
         'updatedAt': FieldValue.serverTimestamp(),
         if (!snapshot.exists) 'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
+      await AuthService.ensureCustomerAccount();
 
       if (!mounted) return;
       final bool complete = existing['profileCompleted'] == true &&
