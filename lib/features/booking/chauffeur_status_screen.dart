@@ -80,7 +80,7 @@ class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
         return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
           stream: partnerId.isEmpty
               ? null
-              : FirebaseFirestore.instance.collection('partners').doc(partnerId).snapshots(),
+              : FirebaseFirestore.instance.collection('partnerPublic').doc(partnerId).snapshots(),
           builder: (context, partnerSnapshot) {
             final partner = partnerSnapshot.data?.data() ?? <String, dynamic>{};
             final driverName = (booking['driverName'] ?? partner['name'] ?? partner['fullName'] ?? 'Assigned Chauffeur').toString();
