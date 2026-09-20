@@ -1,22 +1,65 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
-    function isDriver() { return signedIn() && request.auth.token.role == 'driver'; }
-    function isAdmin() { return signedIn() && request.auth.token.role == 'admin'; }
+
+    function appChecked() {
+      return request.app != null;
+    }
+
+    function signedIn() {
+      return appChecked() && request.auth != null;
+    }
+
+    function isCustomer() {
+      return signedIn() && request.auth.token.role == 'customer';
+    }
+
+    function isDriver() {
+      return signedIn() && request.auth.token.role == 'driver';
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.role == 'admin';
+    }
 
     match /partners/{partnerId} {
-      allow read: if signedIn();
-      allow create, update: if isDriver() && request.auth.uid == partnerId;
+      // Private driver profile: customers must never read this document because it
+      // may contain bank/payout/KYC information. Customer-facing chauffeur data
+      // lives in partnerPublic/{partnerId}.
+      allow read: if isDriver() && request.auth.uid == partnerId;
+      allow create: if false;
+      allow update: if isDriver()
+        && request.auth.uid == partnerId
+        && request.resource.data.uid == partnerId
+        && request.resource.data.role == 'driver'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name',
+          'fullName',
+          'city',
+          'drivingExperience',
+          'bankAccountNo',
+          'ifscCode',
+          'accountHolder',
+          'bankUpdatedTime',
+          'updatedAt'
+        ]);
       allow delete: if false;
+
       match /earnings/{earningId} {
         allow read: if isDriver() && request.auth.uid == partnerId;
         allow write: if false;
       }
+
       match /withdrawals/{withdrawalId} {
         allow read: if isDriver() && request.auth.uid == partnerId;
         allow write: if false;
       }
+    }
+
+    match /partnerPublic/{partnerId} {
+      allow get: if isCustomer() || (isDriver() && request.auth.uid == partnerId);
+      allow list: if false;
+      allow write: if false;
     }
 
     match /users/{userId} {
@@ -30,65 +73,95 @@ service cloud.firestore {
     }
 
     match /bookings/{bookingId} {
-      // Customer booking creation is limited to the signed-in customer who owns the booking.
-      // driverId may be omitted by the customer app or explicitly set to null; assignment is
-      // handled later by backend/admin/driver workflows.
-      allow create: if signedIn()
-        && request.resource.data.customerId == request.auth.uid
-        && request.resource.data.bookingId == bookingId
-        && (!('driverId' in request.resource.data) || request.resource.data.driverId == null);
-
       allow get: if signedIn() && (
-        resource.data.customerId == request.auth.uid ||
-        isAdmin() ||
+        (isCustomer() && resource.data.customerId == request.auth.uid) ||
         (isDriver() && (
           resource.data.partnerId == request.auth.uid ||
-          resource.data.driverId == request.auth.uid ||
           resource.data.status in ['SEARCHING', 'REQUESTED', 'searching', 'requested']
-        ))
+        )) ||
+        isAdmin()
       );
 
+      // Rules are not filters: clients must issue queries that prove every
+      // returned document belongs to the caller's allowed set.
       allow list: if signedIn() && (
-        resource.data.customerId == request.auth.uid || isAdmin() || isDriver()
+        (isCustomer() && resource.data.customerId == request.auth.uid) ||
+        (isDriver() && (
+          resource.data.partnerId == request.auth.uid ||
+          resource.data.status in ['SEARCHING', 'REQUESTED', 'searching', 'requested']
+        )) ||
+        isAdmin()
       );
 
-      allow update: if signedIn() && (
-        (
-          resource.data.customerId == request.auth.uid
-          && request.resource.data.customerId == resource.data.customerId
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'status', 'bookingStatus', 'updatedAt',
-            'cancelledAt', 'cancelledBy', 'cancellationReason'
-          ])
-          && request.resource.data.status == 'cancelled'
-          && request.resource.data.bookingStatus == 'cancelled'
-        ) || (
-          isDriver()
-          && resource.data.driverId == request.auth.uid
-          && request.resource.data.customerId == resource.data.customerId
-          && request.resource.data.driverId == resource.data.driverId
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'status', 'bookingStatus', 'updatedAt',
-            'driverName', 'driverPhone', 'vehicle'
-          ])
-          && request.resource.data.status in [
-            'accepted', 'arriving', 'arrived', 'in_progress', 'completed'
-          ]
-        ) || (
-          isAdmin()
-          && request.resource.data.customerId == resource.data.customerId
-          && request.resource.data.bookingId == resource.data.bookingId
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'status', 'bookingStatus', 'updatedAt',
-            'driverId', 'partnerId', 'driverName', 'driverPhone', 'vehicle'
-          ])
-          && request.resource.data.status in [
-            'SEARCHING', 'REQUESTED', 'searching', 'requested',
-            'assigned', 'accepted', 'arriving', 'arrived',
-            'in_progress', 'completed', 'cancelled'
-          ]
-        )
-      );
+      // Customer-side initial booking creation only.
+      // Assignment/status mutation is server controlled.
+      allow create: if isCustomer()
+        && request.resource.data.customerId == request.auth.uid
+        && request.resource.data.bookingId == bookingId
+        && request.resource.data.status in ['SEARCHING', 'REQUESTED', 'searching', 'requested']
+        && (!('bookingStatus' in request.resource.data) || request.resource.data.bookingStatus in ['SEARCHING', 'REQUESTED', 'searching', 'requested'])
+        && (!('partnerId' in request.resource.data) || request.resource.data.partnerId == null)
+        && (!('driverId' in request.resource.data) || request.resource.data.driverId == null)
+        && request.resource.data.fare is number
+        && request.resource.data.fare >= 0
+        && request.resource.data.paymentMethod in ['UPI', 'Card', 'Cash']
+        && request.resource.data.paymentStatus in ['pending', 'paid'];
+
+      // Customer may only cancel their own active booking.
+      allow update: if isCustomer()
+        && resource.data.customerId == request.auth.uid
+        && request.resource.data.customerId == resource.data.customerId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'bookingStatus',
+          'updatedAt',
+          'cancelledAt',
+          'cancelledBy',
+          'cancellationReason'
+        ])
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.bookingStatus == 'cancelled';
+
+      // Drivers use protected callable backend transitions. Keep direct driver
+      // writes limited to the legacy inspection flow and assignment ownership.
+      allow update: if isDriver()
+        && resource.data.partnerId == request.auth.uid
+        && request.resource.data.partnerId == resource.data.partnerId
+        && request.resource.data.customerId == resource.data.customerId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'bookingStatus',
+          'updatedAt',
+          'preTripFrontUrl',
+          'preTripBackUrl',
+          'preTripRightUrl',
+          'preTripLeftUrl',
+          'driverSelfieUrl',
+          'postTripFrontUrl',
+          'postTripBackUrl',
+          'postTripRightUrl',
+          'postTripLeftUrl'
+        ])
+        && request.resource.data.status in [
+          'accepted', 'arriving', 'arrived', 'in_progress', 'completed',
+          'ACCEPTED', 'ARRIVING', 'ARRIVED', 'TRIP_STARTED', 'COMPLETED'
+        ];
+
+      // Admin/server-side assignment and status operations are performed through
+      // trusted Admin SDK code or explicit admin clients.
+      allow update: if isAdmin()
+        && request.resource.data.customerId == resource.data.customerId
+        && request.resource.data.bookingId == resource.data.bookingId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'bookingStatus',
+          'updatedAt',
+          'driverId',
+          'partnerId',
+          'driverName',
+          'driverPhone',
+          'vehicle'
+        ]);
 
       allow delete: if false;
     }
@@ -106,6 +179,7 @@ service cloud.firestore {
 
     match /profiles/{userId} {
       allow read, write: if signedIn() && request.auth.uid == userId;
+      allow delete: if false;
     }
 
     match /{document=**} {
