@@ -108,6 +108,16 @@ class BookingService {
       );
     }
 
+    // The customer app creates bookings directly from the current booking flow,
+    // so make sure the signed-in Firebase user has the customer role claim before
+    // calling the protected cancellation backend.
+    await _functions.httpsCallable('ensureCustomerAccount').call({
+      'name': _auth.currentUser?.displayName,
+      'email': _auth.currentUser?.email,
+      'phone': _auth.currentUser?.phoneNumber,
+    });
+    await _auth.currentUser!.getIdToken(true);
+
     await _functions.httpsCallable('cancelCustomerBooking').call({
       'bookingId': bookingId,
       'reason': reason,
