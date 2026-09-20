@@ -73,7 +73,8 @@ class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
           return const Scaffold(body: Center(child: CircularProgressIndicator(color: primary)));
         }
         final booking = bookingSnapshot.data?.data() ?? {};
-        final status = (booking['status'] ?? 'REQUESTED').toString().toUpperCase();
+        final rawStatus = (booking['status'] ?? 'REQUESTED').toString().toUpperCase();
+        final status = _normalizeStatus(rawStatus);
         final partnerId = (booking['partnerId'] ?? '').toString();
 
         return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -134,6 +135,27 @@ class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
         );
       },
     );
+  }
+
+  String _normalizeStatus(String status) {
+    switch (status) {
+      case 'ASSIGNED':
+        return 'ACCEPTED';
+      case 'IN_PROGRESS':
+      case 'ONGOING':
+        return 'TRIP_STARTED';
+      case 'REQUESTED':
+      case 'SEARCHING':
+      case 'ACCEPTED':
+      case 'ARRIVING':
+      case 'ARRIVED':
+      case 'TRIP_STARTED':
+      case 'COMPLETED':
+      case 'CANCELLED':
+        return status;
+      default:
+        return status;
+    }
   }
 
   String _title(String status) {
