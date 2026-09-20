@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/navigation_screen.dart';
+import '../../services/auth_service.dart';
 import '../auth/profile_completion_screen.dart';
 
 import 'widgets/otp_header.dart';
@@ -205,6 +206,7 @@ class _OtpVerificationScreenState
       // ======================================================
 
       await _saveUserToFirestore(user);
+      await AuthService.ensureCustomerAccount();
 
       if (!mounted) return;
 
@@ -327,6 +329,7 @@ class _OtpVerificationScreenState
 
             if (user != null) {
               await _saveUserToFirestore(user);
+              await AuthService.ensureCustomerAccount();
             }
 
             if (!mounted) return;
