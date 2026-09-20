@@ -57,7 +57,31 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read, create, update: if signedIn() && request.auth.uid == userId;
+      allow read: if signedIn() && request.auth.uid == userId;
+
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == userId
+        && request.resource.data.role == 'customer';
+
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name',
+          'email',
+          'phone',
+          'photoUrl',
+          'age',
+          'gender',
+          'isActive',
+          'profileCompleted',
+          'updatedAt',
+          'createdAt',
+          'role'
+        ]);
+
       allow delete: if false;
     }
 
@@ -172,7 +196,31 @@ service cloud.firestore {
     }
 
     match /profiles/{userId} {
-      allow read, write: if signedIn() && request.auth.uid == userId;
+      allow read: if signedIn() && request.auth.uid == userId;
+
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == userId
+        && request.resource.data.role == 'customer';
+
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name',
+          'email',
+          'phone',
+          'photoUrl',
+          'age',
+          'gender',
+          'isActive',
+          'profileCompleted',
+          'updatedAt',
+          'createdAt',
+          'role'
+        ]);
+
       allow delete: if false;
     }
 
