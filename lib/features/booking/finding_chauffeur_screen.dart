@@ -183,7 +183,6 @@ class _FindingChauffeurScreenState
   @override
   void dispose() {
     _timer?.cancel();
-    _fallbackAssignmentTimer?.cancel();
     _bookingSubscription?.cancel();
     super.dispose();
   }
