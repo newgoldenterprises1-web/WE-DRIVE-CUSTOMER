@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import 'premium_chauffeur_assigned_screen.dart';
@@ -7,12 +8,14 @@ import 'premium_chauffeur_assigned_screen.dart';
 class PremiumFindChauffeurScreen extends StatefulWidget {
   const PremiumFindChauffeurScreen({
     super.key,
+    required this.bookingId,
     required this.pickupLocation,
     required this.dropLocation,
     required this.serviceType,
     required this.fare,
   });
 
+  final String bookingId;
   final String pickupLocation;
   final String dropLocation;
   final String serviceType;
@@ -34,8 +37,10 @@ class _PremiumFindChauffeurScreenState
   late Animation<double> _scaleAnimation;
 
   Timer? _timer;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _bookingSubscription;
 
-  int _secondsRemaining = 4;
+  int _secondsElapsed = 0;
+  bool _openingAssigned = false;
 
   @override
   void initState() {
@@ -57,6 +62,7 @@ class _PremiumFindChauffeurScreenState
     );
 
     _startSearching();
+    _listenToBooking();
   }
 
   void _startSearching() {
@@ -67,21 +73,34 @@ class _PremiumFindChauffeurScreenState
           timer.cancel();
           return;
         }
-
-        if (_secondsRemaining > 1) {
-          setState(() {
-            _secondsRemaining--;
-          });
-        } else {
-          timer.cancel();
-          _openAssignedScreen();
-        }
+        setState(() => _secondsElapsed++);
       },
     );
   }
 
+  void _listenToBooking() {
+    _bookingSubscription = FirebaseFirestore.instance
+        .collection('bookings')
+        .doc(bookingId)
+        .snapshots()
+        .listen((snapshot) {
+      if (!snapshot.exists) return;
+      final data = snapshot.data() ?? <String, dynamic>{};
+      final status = (data['status'] ?? '').toString().toUpperCase();
+
+      if (status == 'ACCEPTED' || status == 'ARRIVING' || status == 'ARRIVED' || status == 'TRIP_STARTED') {
+        _openAssignedScreen();
+      } else if (status == 'CANCELLED') {
+        if (!mounted) return;
+        _showMessage('This premium booking was cancelled.');
+      }
+    });
+  }
+
+
   void _openAssignedScreen() {
-    if (!mounted) return;
+    if (!mounted || _openingAssigned) return;
+    _openingAssigned = true;
 
     Navigator.pushReplacement(
       context,
@@ -99,6 +118,7 @@ class _PremiumFindChauffeurScreenState
   @override
   void dispose() {
     _timer?.cancel();
+    _bookingSubscription?.cancel();
     _animationController.dispose();
     super.dispose();
   }
@@ -280,7 +300,7 @@ class _PremiumFindChauffeurScreenState
               ),
 
               Text(
-                "${_secondsRemaining}s",
+                "${_secondsElapsed}s",
                 style: const TextStyle(
                   color: gold,
                   fontSize: 14,
