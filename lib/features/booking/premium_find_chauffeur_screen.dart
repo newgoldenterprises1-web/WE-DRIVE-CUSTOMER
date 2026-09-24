@@ -81,7 +81,7 @@ class _PremiumFindChauffeurScreenState
   void _listenToBooking() {
     _bookingSubscription = FirebaseFirestore.instance
         .collection('bookings')
-        .doc(bookingId)
+        .doc(widget.bookingId)
         .snapshots()
         .listen((snapshot) {
       if (!snapshot.exists) return;
@@ -92,7 +92,9 @@ class _PremiumFindChauffeurScreenState
         _openAssignedScreen();
       } else if (status == 'CANCELLED') {
         if (!mounted) return;
-        _showMessage('This premium booking was cancelled.');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This premium booking was cancelled.'), backgroundColor: Colors.red),
+        );
       }
     });
   }
