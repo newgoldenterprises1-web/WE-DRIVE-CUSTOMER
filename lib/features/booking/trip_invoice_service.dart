@@ -191,7 +191,7 @@ class TripInvoiceService {
                     ],
                   ),
                 ],
-              )
+              ),
 
               pw.Spacer(),
 
