@@ -159,7 +159,6 @@ class _FindingChauffeurScreenState
 
   Future<void> _cancelSearch() async {
     _timer?.cancel();
-    _fallbackAssignmentTimer?.cancel();
     await _bookingSubscription?.cancel();
 
     try {
