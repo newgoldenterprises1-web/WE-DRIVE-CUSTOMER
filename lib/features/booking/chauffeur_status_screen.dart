@@ -114,7 +114,7 @@ class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
                   const SizedBox(height: 14),
                   _routeCard(),
                   const SizedBox(height: 14),
-                  _tripMeta(booking),
+                  _tripMeta(booking, status),
                   const SizedBox(height: 18),
                   if (status == 'COMPLETED')
                     ElevatedButton.icon(
@@ -132,7 +132,10 @@ class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
                         } catch (error) {
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Could not generate invoice: ' + error.toString()), backgroundColor: Colors.red),
+                            SnackBar(
+                              content: Text('Could not generate invoice: ' + error.toString()),
+                              backgroundColor: Colors.red,
+                            ),
                           );
                         }
                       },
@@ -142,10 +145,11 @@ class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
                         backgroundColor: primary,
                         foregroundColor: Colors.white,
                         minimumSize: const Size.fromHeight(50),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                     ),
-
                   if (!{'COMPLETED', 'CANCELLED', 'TRIP_STARTED'}.contains(status))
                     OutlinedButton.icon(
                       onPressed: _cancel,
@@ -378,6 +382,102 @@ class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
 
   Widget _timeline(String status) {
     const steps = <Map<String, String>>[
+      {'title': 'Request sent', 'sub': 'WeDrive247 is matching you'},
+      {'title': 'Chauffeur assigned', 'sub': 'A verified professional accepted'},
+      {'title': 'Chauffeur arriving', 'sub': 'Live location is available'},
+      {'title': 'Chauffeur arrived', 'sub': 'Verify the chauffeur before starting'},
+      {'title': 'Service active', 'sub': 'Trip tracking is live'},
+      {'title': 'Completed', 'sub': 'Thank you for choosing WeDrive247'},
+    ];
+    final currentIndex = _statusIndex(status);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Service Timeline', style: TextStyle(fontWeight: FontWeight.w800, color: primary, fontSize: 14)),
+        const SizedBox(height: 14),
+        for (int i = 0; i < steps.length; i++) _timelineRow(steps[i]['title']!, steps[i]['sub']!, i <= currentIndex, i == steps.length - 1),
+      ]),
+    );
+  }
+
+  Widget _timelineRow(String title, String sub, bool active, bool last) {
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Column(children: [CircleAvatar(radius: 7, backgroundColor: active ? primary : const Color(0xFFD8E2E4), child: active ? const Icon(Icons.check, size: 9, color: Colors.white) : null), if (!last) Container(width: 2, height: 36, color: active ? primary.withValues(alpha: 0.25) : const Color(0xFFE6ECEE))]),
+      const SizedBox(width: 12),
+      Expanded(child: Padding(padding: const EdgeInsets.only(bottom: 12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: active ? primary : Colors.black45, fontSize: 12)), const SizedBox(height: 2), Text(sub, style: TextStyle(color: active ? Colors.black54 : Colors.black38, fontSize: 10.5))]))),
+    ]);
+  }
+
+  int _statusIndex(String status) {
+    switch (status) {
+      case 'ACCEPTED': return 1;
+      case 'ARRIVING': return 2;
+      case 'ARRIVED': return 3;
+      case 'TRIP_STARTED': return 4;
+      case 'COMPLETED': return 5;
+      default: return 0;
+    }
+  }
+
+  Widget _routeCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Column(children: [const Icon(Icons.radio_button_checked_rounded, color: primary, size: 16), Container(height: 36, width: 2, color: const Color(0xFFDDE6E8)), const Icon(Icons.location_on_rounded, color: accent, size: 19)]),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Pickup', style: TextStyle(color: Colors.black45, fontSize: 10.5, fontWeight: FontWeight.w700)), Text(widget.pickupLocation, style: const TextStyle(color: primary, fontSize: 12.5, fontWeight: FontWeight.w700)), const SizedBox(height: 20), const Text('Destination', style: TextStyle(color: Colors.black45, fontSize: 10.5, fontWeight: FontWeight.w700)), Text(widget.dropLocation, style: const TextStyle(color: primary, fontSize: 12.5, fontWeight: FontWeight.w700))])),
+      ]),
+    );
+  }
+
+  Widget _tripMeta(Map<String, dynamic> booking, String status) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
+      child: Column(children: [
+        _meta('Booking ID', widget.bookingId),
+        const Divider(height: 20, color: border),
+        _meta('Service', (booking['serviceType'] ?? 'Chauffeur Service').toString()),
+        const Divider(height: 20, color: border),
+        _meta('Fare', '₹${widget.fare.toStringAsFixed(0)}', highlight: true),
+        if (status == 'ARRIVED' && RegExp(r'^\d{4}
+      ]),
+    );
+  }
+
+  Widget _meta(String label, String value, {bool highlight = false}) => Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: const TextStyle(color: Colors.black45, fontSize: 12)), Flexible(child: Text(value, textAlign: TextAlign.end, style: TextStyle(color: highlight ? primary : Colors.black87, fontSize: 12.5, fontWeight: FontWeight.w800))) ]);
+
+  Map<String, String> _vehicleData(Map<String, dynamic> booking, Map<String, dynamic> partner) {
+    final raw = booking['assignedVehicle'];
+    final vehicle = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+    return {
+      'model': (vehicle['model'] ?? partner['vehicleModel'] ?? partner['vehicleType'] ?? booking['vehicleType'] ?? '').toString(),
+      'color': (vehicle['color'] ?? partner['vehicleColor'] ?? '').toString(),
+      'number': (vehicle['number'] ?? partner['vehicleNumber'] ?? partner['registrationNumber'] ?? '').toString(),
+    };
+  }
+
+  double _number(dynamic value, {double fallback = 0}) {
+    final n = value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '');
+    return n ?? fallback;
+  }
+}
+).hasMatch(startOtp) ? startOtp : '----',
+                  style: const TextStyle(fontSize: 22, letterSpacing: 3, fontWeight: FontWeight.w900, color: primary),
+                ),
+              ]),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _timeline(String status) {
+    const steps = <Map<String, String>>[
       {'title': 'Request sent', 'sub': 'WE DRIVE is matching you'},
       {'title': 'Chauffeur assigned', 'sub': 'A verified professional accepted'},
       {'title': 'Chauffeur arriving', 'sub': 'Live location is available'},
@@ -440,6 +540,31 @@ class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
         const Divider(height: 20, color: border),
         _meta('Fare', '₹${widget.fare.toStringAsFixed(0)}', highlight: true),
         if ((booking['otp'] ?? '').toString().isNotEmpty) ...[
+          const Divider(height: 20, color: border),
+          _meta('Trip OTP', (booking['otp'] ?? '').toString(), highlight: true),
+        ],
+      ]),
+    );
+  }
+
+  Widget _meta(String label, String value, {bool highlight = false}) => Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: const TextStyle(color: Colors.black45, fontSize: 12)), Flexible(child: Text(value, textAlign: TextAlign.end, style: TextStyle(color: highlight ? primary : Colors.black87, fontSize: 12.5, fontWeight: FontWeight.w800))) ]);
+
+  Map<String, String> _vehicleData(Map<String, dynamic> booking, Map<String, dynamic> partner) {
+    final raw = booking['assignedVehicle'];
+    final vehicle = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+    return {
+      'model': (vehicle['model'] ?? partner['vehicleModel'] ?? partner['vehicleType'] ?? booking['vehicleType'] ?? '').toString(),
+      'color': (vehicle['color'] ?? partner['vehicleColor'] ?? '').toString(),
+      'number': (vehicle['number'] ?? partner['vehicleNumber'] ?? partner['registrationNumber'] ?? '').toString(),
+    };
+  }
+
+  double _number(dynamic value, {double fallback = 0}) {
+    final n = value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '');
+    return n ?? fallback;
+  }
+}
+).hasMatch((booking['otp'] ?? '').toString())) ...[
           const Divider(height: 20, color: border),
           _meta('Trip OTP', (booking['otp'] ?? '').toString(), highlight: true),
         ],
