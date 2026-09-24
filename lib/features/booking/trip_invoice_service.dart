@@ -10,6 +10,7 @@ class TripInvoiceService {
     required String dropLocation,
     required double fare,
     required String driverName,
+    String paymentStatus = 'pending',
   }) async {
     final pdf = pw.Document();
 
@@ -95,7 +96,7 @@ class TripInvoiceService {
                       children: [
                         pw.Text("Service: On-Demand Pilot", style: const pw.TextStyle(fontSize: 10)),
                         pw.SizedBox(height: 4),
-                        pw.Text("Status: Paid (Confirmed)", style: pw.TextStyle(color: PdfColors.green800, fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                        pw.Text("Status: ${paymentStatus.toLowerCase() == 'paid' ? 'Paid (Confirmed)' : 'Payment due / Cash settlement'}", style: pw.TextStyle(color: PdfColors.green800, fontWeight: pw.FontWeight.bold, fontSize: 10)),
                       ],
                     ),
                   ],
@@ -132,7 +133,7 @@ class TripInvoiceService {
                   ),
                   pw.TableRow(
                     children: [
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("GST & Safe Ride Assurance (15%)", style: const pw.TextStyle(fontSize: 10))),
+                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("Service & Platform Allocation", style: const pw.TextStyle(fontSize: 10))),
                       pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("₹${gstAmount.toStringAsFixed(2)}", textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 10))),
                     ],
                   ),
