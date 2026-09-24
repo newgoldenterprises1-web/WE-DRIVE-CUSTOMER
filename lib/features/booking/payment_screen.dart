@@ -1,7 +1,8 @@
-﻿import 'dart:math';
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
+import '../../services/booking_service.dart';
 import 'chauffeur_status_screen.dart';
 
 class PaymentScreen extends StatefulWidget {
@@ -29,6 +30,10 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
+  late final Razorpay _razorpay;
+  final FirebaseFunctions _functions = FirebaseFunctions.instanceFor(region: 'asia-south1');
+  String? _pendingBookingId;
+  String? _pendingOrderId;
   static const Color primary = Color(0xFF173B6D);
   static const Color gold = Color(0xFFD4AF37);
   static const Color bg = Color(0xFFF8FAFC);
@@ -46,6 +51,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   void initState() {
     super.initState();
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
     if (requiresBookingSchedule) {
       final now = DateTime.now();
       bookingDate = DateTime(now.year, now.month, now.day);
@@ -118,71 +127,138 @@ class _PaymentScreenState extends State<PaymentScreen> {
       return;
     }
 
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please log in before booking a chauffeur.')));
+      return;
+    }
+
     setState(() => isBooking = true);
 
-    final newBookingId = _generateBookingId();
-    final user = FirebaseAuth.instance.currentUser;
+    try {
+      final selectedDateTime = _selectedDateTime;
+      final bookingId = await BookingService.createBooking(
+        serviceType: widget.serviceType,
+        pickupLocation: widget.pickupLocation,
+        dropLocation: widget.dropLocation,
+        bookingDate: selectedDateTime,
+        bookingTime: selectedDateTime == null ? null : _formatTime(TimeOfDay.fromDateTime(selectedDateTime)),
+        selectedHours: widget.selectedHours,
+        vehicleType: widget.vehicleType,
+        fare: widget.fare,
+        paymentMethod: selectedPaymentMethod,
+        paymentStatus: 'pending',
+        additionalData: {
+          'specialInstruction': widget.specialInstruction,
+          'serviceMode': widget.serviceType,
+        },
+      );
 
-    if (user == null) {
+      if (selectedPaymentMethod == 'Cash') {
+        if (!mounted) return;
+        setState(() => isBooking = false);
+        _openStatusScreen(bookingId);
+        return;
+      }
+
+      final result = await _functions.httpsCallable('createRazorpayOrder').call({
+        'bookingId': bookingId,
+      });
+      final data = Map<String, dynamic>.from(result.data as Map);
+
+      _pendingBookingId = bookingId;
+      _pendingOrderId = data['orderId']?.toString();
+
+      final contact = user.phoneNumber?.replaceFirst('+91', '');
+      final options = <String, dynamic>{
+        'key': data['keyId'],
+        'amount': data['amount'],
+        'currency': data['currency'] ?? 'INR',
+        'order_id': data['orderId'],
+        'name': 'WeDrive247',
+        'description': widget.serviceType + ' Chauffeur Service',
+        'prefill': {
+          if (contact != null && contact.isNotEmpty) 'contact': contact,
+          if (user.email != null && user.email!.isNotEmpty) 'email': user.email,
+        },
+        'theme': {'color': '#173B6D'},
+      };
+
+      _razorpay.open(options);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isBooking = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not start payment: ' + e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+  }
+
+  Future<void> _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    final bookingId = _pendingBookingId;
+    final orderId = response.orderId ?? _pendingOrderId;
+    final paymentId = response.paymentId;
+    final signature = response.signature;
+
+    if (bookingId == null || orderId == null || paymentId == null || signature == null) {
       if (mounted) {
         setState(() => isBooking = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please log in before booking a chauffeur.')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Razorpay returned incomplete payment details.')));
       }
       return;
     }
 
     try {
-      final selectedDateTime = _selectedDateTime;
-      await FirebaseFirestore.instance.collection('bookings').doc(newBookingId).set({
-        'bookingId': newBookingId,
-        'customerId': user.uid,
-        'userId': user.uid,
-        'userName': user.displayName ?? 'Valued Customer',
-        'userPhone': user.phoneNumber ?? '',
-        'serviceType': widget.serviceType,
-        'pickupLocation': widget.pickupLocation,
-        'dropLocation': widget.dropLocation,
-        'vehicleType': widget.vehicleType,
-        'fare': widget.fare,
-        'driverPayout': double.parse(driverPayout.toStringAsFixed(2)),
-        'weDriveShare': double.parse(weDriveShare.toStringAsFixed(2)),
-        'selectedHours': widget.selectedHours,
-        'specialInstruction': widget.specialInstruction,
-        'paymentMethod': selectedPaymentMethod,
-        'paymentStatus': selectedPaymentMethod == 'Cash' ? 'pending' : 'paid',
-        'status': 'searching',
-        'bookingDate': requiresBookingSchedule && bookingDate != null ? _formatDate(bookingDate!) : null,
-        'bookingTime': requiresBookingSchedule && bookingTime != null ? _formatTime(bookingTime!) : null,
-        'scheduledDateTime': requiresBookingSchedule && selectedDateTime != null ? selectedDateTime.toIso8601String() : null,
-        'isScheduled': requiresBookingSchedule,
-        'createdAt': FieldValue.serverTimestamp(),
+      await _functions.httpsCallable('verifyRazorpayPayment').call({
+        'bookingId': bookingId,
+        'orderId': orderId,
+        'paymentId': paymentId,
+        'signature': signature,
       });
 
       if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ChauffeurStatusScreen(
-            pickupLocation: widget.pickupLocation,
-            dropLocation: widget.dropLocation,
-            fare: widget.fare,
-            vehicleType: widget.vehicleType,
-            bookingId: newBookingId,
-          ),
-        ),
-      );
+      setState(() => isBooking = false);
+      _openStatusScreen(bookingId);
     } catch (e) {
-      if (mounted) {
-        setState(() => isBooking = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to book chauffeur: $e')),
-        );
-      }
+      if (!mounted) return;
+      setState(() => isBooking = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment verification failed: ' + e.toString().replaceFirst('Exception: ', '')), backgroundColor: Colors.red),
+      );
     }
   }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    if (!mounted) return;
+    setState(() => isBooking = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(response.message ?? 'Payment was not completed.'), backgroundColor: Colors.red),
+    );
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    if (!mounted) return;
+    setState(() => isBooking = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('External wallet selected: ' + (response.walletName ?? 'wallet'))),
+    );
+  }
+
+  void _openStatusScreen(String bookingId) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChauffeurStatusScreen(
+          pickupLocation: widget.pickupLocation,
+          dropLocation: widget.dropLocation,
+          fare: widget.fare,
+          vehicleType: widget.vehicleType,
+          bookingId: bookingId,
+        ),
+      ),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
