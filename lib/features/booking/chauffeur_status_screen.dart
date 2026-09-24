@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/booking_service.dart';
+import 'trip_invoice_service.dart';
 
 class ChauffeurStatusScreen extends StatefulWidget {
   const ChauffeurStatusScreen({
@@ -114,6 +115,36 @@ class _ChauffeurStatusScreenState extends State<ChauffeurStatusScreen> {
                   const SizedBox(height: 14),
                   _tripMeta(booking),
                   const SizedBox(height: 18),
+                  if (status == 'COMPLETED')
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        try {
+                          await TripInvoiceService.downloadInvoice(
+                            bookingId: widget.bookingId,
+                            vehicleType: widget.vehicleType,
+                            pickupLocation: widget.pickupLocation,
+                            dropLocation: widget.dropLocation,
+                            fare: _number(booking['fare'], fallback: widget.fare),
+                            driverName: driverName,
+                            paymentStatus: (booking['paymentStatus'] ?? 'pending').toString(),
+                          );
+                        } catch (error) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Could not generate invoice: ' + error.toString()), backgroundColor: Colors.red),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.receipt_long_rounded),
+                      label: const Text('Download Invoice'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primary,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(50),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
+
                   if (!{'COMPLETED', 'CANCELLED', 'TRIP_STARTED'}.contains(status))
                     OutlinedButton.icon(
                       onPressed: _cancel,
