@@ -4,11 +4,15 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 class RouteMapCard extends StatelessWidget {
   final CameraPosition initialPosition;
   final ValueChanged<GoogleMapController> onMapCreated;
+  final Set<Marker> markers;
+  final Set<Polyline> polylines;
 
   const RouteMapCard({
     super.key,
     required this.initialPosition,
     required this.onMapCreated,
+    this.markers = const <Marker>{},
+    this.polylines = const <Polyline>{},
   });
 
   @override
@@ -25,6 +29,8 @@ class RouteMapCard extends StatelessWidget {
           initialCameraPosition: initialPosition,
           onMapCreated: onMapCreated,
           zoomControlsEnabled: false,
+          markers: markers,
+          polylines: polylines,
         ),
       ),
     );
