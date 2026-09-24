@@ -59,6 +59,8 @@ class BookingService {
       'transmission': transmission,
       'fuelType': fuelType,
       'fare': fare,
+      'paymentMethod': paymentMethod,
+      'paymentStatus': paymentStatus,
       'specialInstruction': additionalData?['specialInstruction'],
       'serviceMode': additionalData?['serviceMode'],
       'requestPreferences': requestPreferences,

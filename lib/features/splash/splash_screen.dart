@@ -171,7 +171,7 @@ class _SplashScreenState extends State<SplashScreen>
                             textBaseline: TextBaseline.alphabetic,
                             children: [
                               const Text(
-                                "We Drive",
+                                "WeDrive247",
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 44,

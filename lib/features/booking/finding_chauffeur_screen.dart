@@ -28,7 +28,6 @@ class _FindingChauffeurScreenState
   static const Color gold = Color(0xFFD4AF37);
 
   Timer? _timer;
-  Timer? _fallbackAssignmentTimer;
 
   StreamSubscription<
       DocumentSnapshot<Map<String, dynamic>>>? _bookingSubscription;
@@ -43,12 +42,6 @@ class _FindingChauffeurScreenState
     _startTimer();
     _listenToBooking();
 
-    // Frontend/demo fallback: if no partner-side status update arrives,
-    // continue the customer flow automatically after a few seconds.
-    _fallbackAssignmentTimer = Timer(
-      const Duration(seconds: 5),
-      _openAssignedScreen,
-    );
   }
 
   // ==========================================================
@@ -89,18 +82,21 @@ class _FindingChauffeurScreenState
         if (data == null) return;
 
         final String status =
-            (data['status'] ?? '').toString();
+            (data['status'] ?? '').toString().toUpperCase();
 
         debugPrint(
           'Booking ${widget.bookingId} status: $status',
         );
 
-        if (status == 'accepted' ||
-            status == 'assigned') {
+        if (status == 'ACCEPTED' ||
+            status == 'ASSIGNED' ||
+            status == 'ARRIVING' ||
+            status == 'ARRIVED' ||
+            status == 'TRIP_STARTED') {
           _openAssignedScreen();
         }
 
-        if (status == 'cancelled') {
+        if (status == 'CANCELLED') {
           _showBookingCancelled();
         }
       },
@@ -124,7 +120,6 @@ class _FindingChauffeurScreenState
     _openingAssignedScreen = true;
 
     _timer?.cancel();
-    _fallbackAssignmentTimer?.cancel();
     _bookingSubscription?.cancel();
 
     Navigator.pushReplacement(
@@ -164,7 +159,6 @@ class _FindingChauffeurScreenState
 
   Future<void> _cancelSearch() async {
     _timer?.cancel();
-    _fallbackAssignmentTimer?.cancel();
     await _bookingSubscription?.cancel();
 
     try {
@@ -189,7 +183,6 @@ class _FindingChauffeurScreenState
   @override
   void dispose() {
     _timer?.cancel();
-    _fallbackAssignmentTimer?.cancel();
     _bookingSubscription?.cancel();
     super.dispose();
   }

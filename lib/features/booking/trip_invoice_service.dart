@@ -10,11 +10,10 @@ class TripInvoiceService {
     required String dropLocation,
     required double fare,
     required String driverName,
+    String paymentStatus = 'pending',
   }) async {
     final pdf = pw.Document();
 
-    final double baseFare = fare * 0.85;
-    final double gstAmount = fare * 0.15;
 
     pdf.addPage(
       pw.Page(
@@ -32,7 +31,7 @@ class TripInvoiceService {
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       pw.Text(
-                        "WE DRIVE",
+                        "WeDrive247",
                         style: pw.TextStyle(
                           fontSize: 26,
                           fontWeight: pw.FontWeight.bold,
@@ -40,7 +39,7 @@ class TripInvoiceService {
                         ),
                       ),
                       pw.Text(
-                        "We Drive When You Don't",
+                        "WeDrive247 Chauffeur Service",
                         style: pw.TextStyle(
                           fontSize: 10,
                           color: PdfColor.fromHex("D4AF37"),
@@ -95,7 +94,7 @@ class TripInvoiceService {
                       children: [
                         pw.Text("Service: On-Demand Pilot", style: const pw.TextStyle(fontSize: 10)),
                         pw.SizedBox(height: 4),
-                        pw.Text("Status: Paid (Confirmed)", style: pw.TextStyle(color: PdfColors.green800, fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                        pw.Text("Status: ${paymentStatus.toLowerCase() == 'paid' ? 'Paid (Confirmed)' : 'Payment due / Cash settlement'}", style: pw.TextStyle(color: PdfColors.green800, fontWeight: pw.FontWeight.bold, fontSize: 10)),
                       ],
                     ),
                   ],
@@ -113,33 +112,82 @@ class TripInvoiceService {
 
               pw.SizedBox(height: 24),
 
-              // Pricing Table
+              // Final fare only. Do not invent tax or fee components that are not
+              // present in the trusted booking record.
               pw.Table(
                 border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
                 children: [
                   pw.TableRow(
                     decoration: pw.BoxDecoration(color: PdfColor.fromHex("173B6D")),
                     children: [
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("Item Description", style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10))),
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("Amount (INR)", textAlign: pw.TextAlign.right, style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10))),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(
+                          "Item Description",
+                          style: pw.TextStyle(
+                            color: PdfColors.white,
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(
+                          "Amount (INR)",
+                          textAlign: pw.TextAlign.right,
+                          style: pw.TextStyle(
+                            color: PdfColors.white,
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   pw.TableRow(
                     children: [
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("Professional Chauffeur Pilot Fare", style: const pw.TextStyle(fontSize: 10))),
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("₹${baseFare.toStringAsFixed(2)}", textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 10))),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(
+                          "Final Chauffeur Service Fare",
+                          style: const pw.TextStyle(fontSize: 10),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(
+                          "₹\${fare.toStringAsFixed(2)}",
+                          textAlign: pw.TextAlign.right,
+                          style: const pw.TextStyle(fontSize: 10),
+                        ),
+                      ),
                     ],
                   ),
                   pw.TableRow(
                     children: [
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("GST & Safe Ride Assurance (15%)", style: const pw.TextStyle(fontSize: 10))),
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("₹${gstAmount.toStringAsFixed(2)}", textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 10))),
-                    ],
-                  ),
-                  pw.TableRow(
-                    children: [
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("Total Amount Paid", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11))),
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("₹${fare.toStringAsFixed(2)}", textAlign: pw.TextAlign.right, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: PdfColor.fromHex("173B6D")))),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(
+                          "Total Amount",
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(
+                          "₹\${fare.toStringAsFixed(2)}",
+                          textAlign: pw.TextAlign.right,
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 11,
+                            color: PdfColor.fromHex("173B6D"),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -150,7 +198,7 @@ class TripInvoiceService {
               pw.Divider(color: PdfColors.grey300),
               pw.Center(
                 child: pw.Text(
-                  "Thank you for choosing We Drive. For queries: support@wedrive.in",
+                  "Thank you for choosing WeDrive247. For queries: support@wedrive.in",
                   style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
                 ),
               ),

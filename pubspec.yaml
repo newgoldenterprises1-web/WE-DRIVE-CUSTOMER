@@ -38,6 +38,7 @@ dependencies:
   cloud_functions: ^6.0.0
   firebase_app_check: ^0.4.8
   google_sign_in: ^6.2.1
+  razorpay_flutter: ^1.4.7
 
   pdf: ^3.10.8
   printing: ^5.11.1
