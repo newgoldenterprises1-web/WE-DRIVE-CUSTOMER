@@ -65,12 +65,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
   double get driverPayout => widget.fare * 0.85;
   double get weDriveShare => widget.fare * 0.15;
 
-  String _generateBookingId() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final random = Random();
-    return List.generate(8, (index) => chars[random.nextInt(chars.length)]).join();
-  }
-
   String _formatDate(DateTime value) => '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
 
   String _formatTime(TimeOfDay value) {
