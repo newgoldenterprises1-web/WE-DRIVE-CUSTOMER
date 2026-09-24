@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/booking_service.dart';
 
 import 'premium_find_chauffeur_screen.dart';
 
@@ -26,18 +27,43 @@ class PremiumBookingSummaryScreen extends StatelessWidget {
   static const Color gold = Color(0xFFD4AF37);
   static const Color background = Color(0xFFF5F7FA);
 
-  void _continue(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PremiumFindChauffeurScreen(
-          pickupLocation: pickupLocation,
-          dropLocation: dropLocation,
-          serviceType: serviceType,
-          fare: fare,
+  Future<void> _continue(BuildContext context) async {
+    final numericFare = double.tryParse(fare.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+    if (numericFare <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid premium fare.'), backgroundColor: Colors.red));
+      return;
+    }
+
+    try {
+      final bookingId = await BookingService.createBooking(
+        serviceType: 'Premium $serviceType',
+        pickupLocation: pickupLocation,
+        dropLocation: dropLocation,
+        selectedHours: serviceType.toLowerCase() == 'hourly' ? hours : null,
+        fare: numericFare,
+        vehicleType: 'Premium',
+        paymentMethod: 'Cash',
+      );
+
+      if (!context.mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PremiumFindChauffeurScreen(
+            bookingId: bookingId,
+            pickupLocation: pickupLocation,
+            dropLocation: dropLocation,
+            serviceType: serviceType,
+            fare: fare,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not create premium booking: ' + error.toString()), backgroundColor: Colors.red),
+      );
+    }
   }
 
   @override
