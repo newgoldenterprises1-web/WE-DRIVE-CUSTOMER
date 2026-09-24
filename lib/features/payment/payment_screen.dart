@@ -180,6 +180,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
             amount: total.toStringAsFixed(0),
             paymentMethod: paymentMethodName,
             bookingId: bookingId,
+            bookingDate: widget.bookingDate == null
+                ? null
+                : '${widget.bookingDate!.day}/${widget.bookingDate!.month}/${widget.bookingDate!.year}',
+            bookingTime: widget.bookingTime,
+            pickupLocation: widget.pickupLocation,
+            dropLocation: widget.dropLocation,
+            serviceType: widget.serviceType,
+            vehicleType: widget.vehicleType,
+            fare: total,
           ),
         ),
       );
