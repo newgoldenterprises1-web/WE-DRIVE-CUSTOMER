@@ -10,11 +10,17 @@ class TripInvoiceService {
     required String dropLocation,
     required double fare,
     required String driverName,
+    String paymentStatus = 'pending',
+    String paymentMethod = 'Cash',
+    DateTime? completedAt,
   }) async {
     final pdf = pw.Document();
-
-    final double baseFare = fare * 0.85;
-    final double gstAmount = fare * 0.15;
+    final normalizedPaymentStatus = paymentStatus.trim().toUpperCase();
+    final paymentLabel = normalizedPaymentStatus == 'PAID'
+        ? 'Paid'
+        : normalizedPaymentStatus == 'PENDING'
+            ? 'Pending'
+            : (paymentStatus.trim().isEmpty ? 'Pending' : paymentStatus.trim());
 
     pdf.addPage(
       pw.Page(
@@ -40,7 +46,7 @@ class TripInvoiceService {
                         ),
                       ),
                       pw.Text(
-                        "We Drive When You Don't",
+                        "Your Car. Your Comfort. Our Chauffeur.",
                         style: pw.TextStyle(
                           fontSize: 10,
                           color: PdfColor.fromHex("D4AF37"),
@@ -52,7 +58,7 @@ class TripInvoiceService {
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
                       pw.Text(
-                        "TAX INVOICE",
+                        "TRIP RECEIPT",
                         style: pw.TextStyle(
                           fontSize: 16,
                           fontWeight: pw.FontWeight.bold,
@@ -61,7 +67,7 @@ class TripInvoiceService {
                       ),
                       pw.SizedBox(height: 4),
                       pw.Text(
-                        "Invoice ID: WD-$bookingId",
+                        "Receipt ID: WD-$bookingId",
                         style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
                       ),
                     ],
@@ -93,9 +99,9 @@ class TripInvoiceService {
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
-                        pw.Text("Service: On-Demand Pilot", style: const pw.TextStyle(fontSize: 10)),
+                        pw.Text("Payment: $paymentLabel", style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
                         pw.SizedBox(height: 4),
-                        pw.Text("Status: Paid (Confirmed)", style: pw.TextStyle(color: PdfColors.green800, fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                        pw.Text("Mode: $paymentMethod", style: const pw.TextStyle(fontSize: 10)),
                       ],
                     ),
                   ],
@@ -110,6 +116,13 @@ class TripInvoiceService {
               pw.Text("Pickup: $pickupLocation", style: const pw.TextStyle(fontSize: 10)),
               pw.SizedBox(height: 4),
               pw.Text("Drop: $dropLocation", style: const pw.TextStyle(fontSize: 10)),
+              if (completedAt != null) ...[
+                pw.SizedBox(height: 6),
+                pw.Text(
+                  "Completed: ${completedAt.day.toString().padLeft(2, '0')}/${completedAt.month.toString().padLeft(2, '0')}/${completedAt.year}",
+                  style: const pw.TextStyle(fontSize: 10),
+                ),
+              ],
 
               pw.SizedBox(height: 24),
 
@@ -132,13 +145,13 @@ class TripInvoiceService {
                   ),
                   pw.TableRow(
                     children: [
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("GST & Safe Ride Assurance (15%)", style: const pw.TextStyle(fontSize: 10))),
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("₹${gstAmount.toStringAsFixed(2)}", textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 10))),
+                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("Taxes / Surcharges", style: const pw.TextStyle(fontSize: 10))),
+                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("₹0.00", textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 10))),
                     ],
                   ),
                   pw.TableRow(
                     children: [
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("Total Amount Paid", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11))),
+                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("Total Trip Fare", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11))),
                       pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text("₹${fare.toStringAsFixed(2)}", textAlign: pw.TextAlign.right, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: PdfColor.fromHex("173B6D")))),
                     ],
                   ),
@@ -150,7 +163,7 @@ class TripInvoiceService {
               pw.Divider(color: PdfColors.grey300),
               pw.Center(
                 child: pw.Text(
-                  "Thank you for choosing We Drive. For queries: support@wedrive.in",
+                  "Thank you for choosing WE DRIVE. This receipt reflects the trip data recorded by the service.",
                   style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
                 ),
               ),
@@ -162,7 +175,7 @@ class TripInvoiceService {
 
     await Printing.layoutPdf(
       onLayout: (format) async => pdf.save(),
-      name: "Invoice_$bookingId.pdf",
+      name: "Trip_Receipt_$bookingId.pdf",
     );
   }
 }
