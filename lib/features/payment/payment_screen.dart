@@ -1,4 +1,7 @@
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 import '../../services/booking_service.dart';
 import '../payment_success/payment_success_screen.dart';
@@ -40,6 +43,11 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
+  late final Razorpay _razorpay;
+  final FirebaseFunctions _functions = FirebaseFunctions.instanceFor(region: 'asia-south1');
+  String? _pendingBookingId;
+  String? _pendingOrderId;
+
   static const Color primary = Color(0xFF174C52);
   static const Color gold = Color(0xFF19A8A3);
 
@@ -56,12 +64,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   void initState() {
     super.initState();
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
     selectedMethod = _methodFromString(widget.paymentMethod);
   }
 
   @override
   void dispose() {
     couponController.dispose();
+    _razorpay.clear();
     super.dispose();
   }
 
@@ -128,25 +141,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Future<void> payNow() async {
     if (paying) return;
-
     if (baseFare <= 0) {
       _showError('Invalid booking fare.');
       return;
     }
-
     if (widget.pickupLocation.trim().isEmpty) {
       _showError('Pickup location is missing.');
       return;
     }
-
     if (widget.dropLocation.trim().isEmpty) {
       _showError('Drop location is missing.');
       return;
     }
 
-    setState(() {
-      paying = true;
-    });
+    setState(() => paying = true);
 
     try {
       final bookingId = await BookingService.createBooking(
@@ -167,12 +175,77 @@ class _PaymentScreenState extends State<PaymentScreen> {
           'couponCode': couponController.text.trim().isEmpty
               ? null
               : couponController.text.trim().toUpperCase(),
-          'paymentGateway': 'not_integrated',
         },
       );
 
-      if (!mounted) return;
+      _pendingBookingId = bookingId;
 
+      if (paymentMethodName == 'Cash') {
+        if (!mounted) return;
+        setState(() => paying = false);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentSuccessScreen(
+              amount: total.toStringAsFixed(0),
+              paymentMethod: paymentMethodName,
+              bookingId: bookingId,
+            ),
+          ),
+        );
+        return;
+      }
+
+      final result = await _functions.httpsCallable('createRazorpayOrder').call({
+        'bookingId': bookingId,
+      });
+      final data = Map<String, dynamic>.from(result.data as Map);
+      _pendingOrderId = data['orderId']?.toString();
+
+      final user = FirebaseAuth.instance.currentUser;
+      final contact = user?.phoneNumber?.replaceFirst('+91', '');
+
+      _razorpay.open({
+        'key': data['keyId'],
+        'amount': data['amount'],
+        'currency': data['currency'] ?? 'INR',
+        'order_id': data['orderId'],
+        'name': 'WeDrive247',
+        'description': widget.serviceType + ' Chauffeur Service',
+        'prefill': {
+          if (contact != null && contact.isNotEmpty) 'contact': contact,
+          if (user?.email != null && user!.email!.isNotEmpty) 'email': user.email,
+        },
+        'theme': {'color': '#173B6D'},
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => paying = false);
+      _showError('Booking/payment failed: ' + error.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<void> _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    final bookingId = _pendingBookingId;
+    final orderId = response.orderId ?? _pendingOrderId;
+    final paymentId = response.paymentId;
+    final signature = response.signature;
+
+    if (bookingId == null || orderId == null || paymentId == null || signature == null) {
+      if (mounted) setState(() => paying = false);
+      _showError('Razorpay returned incomplete payment details.');
+      return;
+    }
+
+    try {
+      await _functions.httpsCallable('verifyRazorpayPayment').call({
+        'bookingId': bookingId,
+        'orderId': orderId,
+        'paymentId': paymentId,
+        'signature': signature,
+      });
+      if (!mounted) return;
+      setState(() => paying = false);
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -183,18 +256,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
         ),
       );
-    } catch (e) {
+    } catch (error) {
       if (!mounted) return;
-
-      setState(() {
-        paying = false;
-      });
-
-      _showError(
-        'Booking failed: ${e.toString().replaceFirst('Exception: ', '')}',
-      );
+      setState(() => paying = false);
+      _showError('Payment verification failed: ' + error.toString().replaceFirst('Exception: ', ''));
     }
   }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    if (!mounted) return;
+    setState(() => paying = false);
+    _showError(response.message ?? 'Payment was not completed.');
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    if (!mounted) return;
+    setState(() => paying = false);
+    _showError('External wallet selected: ' + (response.walletName ?? 'wallet'));
+  }
+
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
