@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 class VehicleCard extends StatelessWidget {
   final VoidCallback? onCall;
   final VoidCallback? onMessage;
+  final String vehicle;
+  final String number;
 
   const VehicleCard({
     super.key,
     this.onCall,
     this.onMessage,
+    required this.vehicle,
+    required this.number,
   });
 
   @override
@@ -27,16 +31,32 @@ class VehicleCard extends StatelessWidget {
               color: const Color(0xFF173B6D).withValues(alpha: .10),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.directions_car, color: Color(0xFF173B6D), size: 30),
+            child: const Icon(
+              Icons.directions_car,
+              color: Color(0xFF173B6D),
+              size: 30,
+            ),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Honda City (Sedan)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                SizedBox(height: 4),
-                Text("TS09 AB 4587", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                Text(
+                  vehicle,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  number,
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
           ),
